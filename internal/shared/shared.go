@@ -5,7 +5,7 @@ import (
 )
 
 // ...
-type ID string
+type ID uint64
 
 // ...
 type Money int64

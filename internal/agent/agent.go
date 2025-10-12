@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/fallra1n/humanity/internal/shared"
-	"github.com/fallra1n/humanity/pkg/random"
 )
 
 type Agent struct {
@@ -41,9 +40,6 @@ type Agent struct {
 	actionChan chan actionRequest
 	stopChan   chan struct{}
 	doneChan   chan struct{}
-
-	// Dependencies
-	random *random.Random
 }
 
 // ...

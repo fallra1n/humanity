@@ -10,13 +10,13 @@ import (
 type Agent struct {
 	mu sync.RWMutex
 
-	id        shared.ID
-	age       shared.Age
-	money     shared.Money
-	items     map[string]int64
-	tags      shared.Tags
-	dead      bool
-	busyUntil time.Time
+	Id        shared.ID
+	Age       shared.Age
+	Money     shared.Money
+	Items     map[string]int64
+	Tags      shared.Tags
+	Dead      bool
+	BusyUntil time.Time
 
 	// Информация о работе
 	job     shared.Vacancy

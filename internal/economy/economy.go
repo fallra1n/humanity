@@ -10,7 +10,15 @@ import (
 type EconomicSystem struct {
 	mu sync.RWMutex
 
-	locations []shared.Location
-	jobs      []shared.Job
-	vacancies []shared.Vacancy
+	Locations []shared.Location
+	Jobs      []shared.Job
+	Vacancies []shared.Vacancy
+}
+
+func NewEconomicSystem() *EconomicSystem {
+	return &EconomicSystem{
+		Locations: make([]shared.Location, 0),
+		Jobs:      make([]shared.Job, 0),
+		Vacancies: make([]shared.Vacancy, 0),
+	}
 }

@@ -1,3 +1,5 @@
-module github.com/fallra1n/humanity
+module humanity
 
-go 1.24.5
+go 1.21
+
+require ()

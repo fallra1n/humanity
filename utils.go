@@ -4,12 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 // Tick represents global time counter
@@ -94,8 +92,10 @@ func Shuffle(slice []string) []string {
 	result := make([]string, len(slice))
 	copy(result, slice)
 
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(result), func(i, j int) {
+	// Use the existing GlobalRandom instance instead of deprecated rand.Seed
+	GlobalRandom.mu.Lock()
+	defer GlobalRandom.mu.Unlock()
+	GlobalRandom.rand.Shuffle(len(result), func(i, j int) {
 		result[i], result[j] = result[j], result[i]
 	})
 

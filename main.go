@@ -119,6 +119,15 @@ func main() {
 
 		wg.Wait()
 
+		// Process potential layoffs after all humans have acted
+		for _, person := range people {
+			if !person.Dead {
+				if canFire, reason := person.CanBeFired(); canFire {
+					person.FireEmployee(reason)
+				}
+			}
+		}
+
 		iterateTimer += time.Since(startTime)
 
 		// Increment global time

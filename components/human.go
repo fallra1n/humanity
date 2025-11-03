@@ -101,16 +101,30 @@ func (h *Human) findJob() {
 
 	for job := range h.HomeLocation.Jobs {
 		for vacancy, count := range job.VacantPlaces {
-			if count > 0 && (h.Job == nil || vacancy.Payment > h.Job.Payment) {
-				suitable := true
+			if count > 0 {
+				// Balanced job requirements
+				requiredSkills := 0
+				hasSkills := 0
+				
 				for tag := range vacancy.RequiredTags {
-					if h.Items[tag] <= 0 {
-						suitable = false
-						break
+					requiredSkills++
+					if h.Items[tag] > 0 {
+						hasSkills++
 					}
 				}
-				if suitable {
-					possibleJobs = append(possibleJobs, vacancy)
+				
+				// Allow job if:
+				// 1. No requirements at all
+				// 2. Has at least 80% of required skills
+				// 3. Unemployed and very desperate (money < -10000)
+				if requiredSkills == 0 ||
+				   float64(hasSkills)/float64(requiredSkills) >= 0.8 ||
+				   (h.Job == nil && h.Money < -10000) {
+					
+					// If employed, only consider better paying jobs
+					if h.Job == nil || vacancy.Payment > h.Job.Payment {
+						possibleJobs = append(possibleJobs, vacancy)
+					}
 				}
 			}
 		}
@@ -129,6 +143,151 @@ func (h *Human) findJob() {
 		chosen.Parent.VacantPlaces[chosen]--
 		h.JobTime = 0
 	}
+}
+
+// checkJobMarket periodically checks for better job opportunities
+func (h *Human) checkJobMarket() {
+	// Check job market more frequently and with less experience required
+	if h.Job == nil {
+		// If unemployed, search for job but not every hour - every 24 hours to maintain unemployment rate
+		if utils.GlobalTick.Get()%24 == 0 {
+			h.findJob()
+		}
+		return
+	}
+
+	// If employed, check for better opportunities every week (168 hours)
+	if h.JobTime < 168 || h.JobTime%168 != 0 {
+		return
+	}
+
+	var betterJobs []*Vacancy
+	currentSalary := h.Job.Payment
+
+	for job := range h.HomeLocation.Jobs {
+		for vacancy, count := range job.VacantPlaces {
+			// Look for jobs with moderate pay increase (10% or more)
+			minSalaryIncrease := int(float64(currentSalary) * 1.10)
+			if count > 0 && vacancy.Payment >= minSalaryIncrease {
+				// Balanced requirements for job switching
+				requiredSkills := 0
+				hasSkills := 0
+				
+				for tag := range vacancy.RequiredTags {
+					requiredSkills++
+					if h.Items[tag] > 0 {
+						hasSkills++
+					}
+				}
+				
+				// Accept job if has at least 70% of required skills or no requirements
+				if requiredSkills == 0 || float64(hasSkills)/float64(requiredSkills) >= 0.7 {
+					betterJobs = append(betterJobs, vacancy)
+				}
+			}
+		}
+	}
+
+	// Consider job change with moderate probability
+	if len(betterJobs) > 0 {
+		bestJob := betterJobs[0]
+		for _, job := range betterJobs {
+			if job.Payment > bestJob.Payment {
+				bestJob = job
+			}
+		}
+
+		// Moderate probability of job change (20-60% chance)
+		salaryIncrease := float64(bestJob.Payment-currentSalary) / float64(currentSalary)
+		changeProb := math.Max(0.2, math.Min(0.6, salaryIncrease)) // 20-60% chance
+
+		if utils.GlobalRandom.NextFloat() < changeProb {
+			// Quit current job
+			h.Job.Parent.VacantPlaces[h.Job]++
+			
+			// Take new job
+			h.Job = bestJob
+			bestJob.Parent.VacantPlaces[bestJob]--
+			h.JobTime = 0 // Reset job experience
+
+			// Add a splash about career advancement
+			splash := NewSplash("career_advancement", []string{"career", "money", "well-being"}, 48)
+			h.Splashes = append(h.Splashes, splash)
+		}
+	}
+}
+
+// FireEmployee fires the human from their current job
+func (h *Human) FireEmployee(reason string) {
+	if h.Job == nil {
+		return
+	}
+
+	// Return the vacant position
+	h.Job.Parent.VacantPlaces[h.Job]++
+
+	// Remove job from human
+	h.Job = nil
+	h.JobTime = 721 // Set to unemployed state
+
+	// Add splash about job loss
+	splash := NewSplash("job_loss", []string{"money", "stress", "career"}, 72)
+	h.Splashes = append(h.Splashes, splash)
+}
+
+// CanBeFired determines if a human can be fired based on various factors
+func (h *Human) CanBeFired() (bool, string) {
+	if h.Job == nil {
+		return false, ""
+	}
+
+	// Balanced firing probability to maintain natural unemployment
+	var fireProb float64 = 0.0
+	var reason string
+
+	// 1. Poor performance (new employees with low experience)
+	if h.JobTime < 168 { // Less than 168 hours (1 week) experience
+		fireProb += 0.01 // 1% chance
+		reason = "poor_performance"
+	}
+
+	// 2. Economic downturn (moderate chance)
+	if utils.GlobalRandom.NextFloat() < 0.0005 { // 0.05% chance per hour
+		fireProb += 0.03 // 3% additional chance
+		reason = "economic_downturn"
+	}
+
+	// 3. Company restructuring (for high salary employees)
+	if h.Job.Payment > 60000 { // High salary employees
+		fireProb += 0.0003 // 0.03% chance
+		reason = "restructuring"
+	}
+
+	// 4. Behavioral issues (moderate impact)
+	negativeSpashes := 0
+	for _, splash := range h.Splashes {
+		if splash.Name == "stress" || splash.Name == "job_loss" {
+			negativeSpashes++
+		}
+	}
+	if negativeSpashes > 1 { // If any negative splashes
+		fireProb += 0.005 // 0.5% additional chance
+		reason = "behavioral_issues"
+	}
+
+	// 5. Age discrimination (small chance for older workers)
+	if h.Age > 55 { // Age threshold
+		fireProb += 0.0001 // 0.01% chance
+		reason = "age_discrimination"
+	}
+
+	// 6. Random layoffs to maintain unemployment rate
+	if utils.GlobalRandom.NextFloat() < 0.00001 { // Very small base chance
+		fireProb += 0.001 // 0.1% chance
+		reason = "random_layoff"
+	}
+
+	return utils.GlobalRandom.NextFloat() < fireProb, reason
 }
 
 // IterateHour processes one hour of the human's life
@@ -203,6 +362,9 @@ func (h *Human) IterateHour() {
 	if h.Money < 0 {
 		h.redistributeMoneyInFamily()
 	}
+
+	// Check job market for better opportunities
+	h.checkJobMarket()
 
 	// Main activity logic
 	if h.BusyHours > 0 {

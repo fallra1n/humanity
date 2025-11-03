@@ -3,32 +3,31 @@ package components
 import (
 	"fmt"
 
-	"github.com/fallra1n/humanity/types"
 	"github.com/fallra1n/humanity/utils"
 )
 
-func CreateVacancies(city *types.Location) []*types.Vacancy {
+func CreateVacancies(city *Location) []*Vacancy {
 	// Create 10 companies with diverse vacancies
-	var allVacancies []*types.Vacancy
+	var allVacancies []*Vacancy
 	companyNames := []string{"TechCorp", "FinanceInc", "HealthPlus", "EduCenter", "RetailChain",
 		"ManufacturingLtd", "ServicePro", "CreativeStudio", "LogisticsCo", "ConsultingGroup"}
 
 	for i, companyName := range companyNames {
-		company := &types.Job{
-			VacantPlaces: make(map[*types.Vacancy]uint64),
+		company := &Job{
+			VacantPlaces: make(map[*Vacancy]uint64),
 			HomeLocation: city,
 		}
 
 		// Create 2 different vacancies per company
 		// Junior position
-		juniorVacancy := &types.Vacancy{
+		juniorVacancy := &Vacancy{
 			Parent:       company,
 			RequiredTags: make(map[string]bool),
 			Payment:      30000 + utils.GlobalRandom.NextInt(20000), // 30-50k rubles
 		}
 
 		// Senior position (may require education)
-		seniorVacancy := &types.Vacancy{
+		seniorVacancy := &Vacancy{
 			Parent:       company,
 			RequiredTags: make(map[string]bool),
 			Payment:      50000 + utils.GlobalRandom.NextInt(30000), // 50-80k rubles

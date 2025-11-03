@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/fallra1n/humanity/components"
-	"github.com/fallra1n/humanity/types"
 	"github.com/fallra1n/humanity/utils"
 )
 
@@ -37,24 +36,24 @@ func main() {
 	}
 
 	// Create city and vacancies
-	city := &types.Location{
-		Jobs:   make(map[*types.Job]bool),
-		Humans: make(map[*types.Human]bool),
-		Paths:  make(map[*types.Path]bool),
+	city := &components.Location{
+		Jobs:   make(map[*components.Job]bool),
+		Humans: make(map[*components.Human]bool),
+		Paths:  make(map[*components.Path]bool),
 	}
 
 	allVacancies := components.CreateVacancies(city)
 
 	// Create 100 humans
-	var people []*types.Human
+	var people []*components.Human
 	for i := 0; i < 100; i++ {
-		human := types.NewHuman(make(map[*types.Human]bool), city, globalTargets)
+		human := components.NewHuman(make(map[*components.Human]bool), city, globalTargets)
 		human.Money = 10000 // Starting capital
 
 		// 90% of people start with a job (unemployment rate ~7% in Russia)
 		if i < 90 { // First 90 out of 100 people get jobs
 			// Randomly assign to available vacancies
-			availableVacancies := make([]*types.Vacancy, 0)
+			availableVacancies := make([]*components.Vacancy, 0)
 			for _, vacancy := range allVacancies {
 				if vacancy.Parent.VacantPlaces[vacancy] > 0 {
 					// Check if human can work (has required skills)
@@ -110,7 +109,7 @@ func main() {
 		for _, person := range people {
 			wg.Add(1)
 
-			go func(person *types.Human) {
+			go func(person *components.Human) {
 				defer wg.Done()
 				if !person.Dead {
 					person.IterateHour()

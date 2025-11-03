@@ -5,6 +5,10 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/fallra1n/humanity/components"
+	"github.com/fallra1n/humanity/types"
+	"github.com/fallra1n/humanity/utils"
 )
 
 func main() {
@@ -32,66 +36,25 @@ func main() {
 		log.Fatalf("Failed to create name maps: %v", err)
 	}
 
-	// Create city
-	city := &Location{
-		Jobs:   make(map[*Job]bool),
-		Humans: make(map[*Human]bool),
-		Paths:  make(map[*Path]bool),
+	// Create city and vacancies
+	city := &types.Location{
+		Jobs:   make(map[*types.Job]bool),
+		Humans: make(map[*types.Human]bool),
+		Paths:  make(map[*types.Path]bool),
 	}
 
-	// Create 10 companies with diverse vacancies
-	var allVacancies []*Vacancy
-	companyNames := []string{"TechCorp", "FinanceInc", "HealthPlus", "EduCenter", "RetailChain",
-		"ManufacturingLtd", "ServicePro", "CreativeStudio", "LogisticsCo", "ConsultingGroup"}
-	
-	for i, companyName := range companyNames {
-		company := &Job{
-			VacantPlaces: make(map[*Vacancy]uint64),
-			HomeLocation: city,
-		}
-
-		// Create 2 different vacancies per company
-		// Junior position
-		juniorVacancy := &Vacancy{
-			Parent:       company,
-			RequiredTags: make(map[string]bool),
-			Payment:      30000 + GlobalRandom.NextInt(20000), // 30-50k rubles
-		}
-		
-		// Senior position (may require education)
-		seniorVacancy := &Vacancy{
-			Parent:       company,
-			RequiredTags: make(map[string]bool),
-			Payment:      50000 + GlobalRandom.NextInt(30000), // 50-80k rubles
-		}
-		
-		// Some senior positions require education
-		if i%3 == 0 { // Every 3rd company requires education for senior role
-			seniorVacancy.RequiredTags["engineer_diploma"] = true
-		}
-
-		// Each vacancy has 5-10 positions
-		company.VacantPlaces[juniorVacancy] = uint64(5 + GlobalRandom.NextInt(6))
-		company.VacantPlaces[seniorVacancy] = uint64(5 + GlobalRandom.NextInt(6))
-		
-		allVacancies = append(allVacancies, juniorVacancy, seniorVacancy)
-		city.Jobs[company] = true
-		
-		fmt.Printf("Created %s: Junior (%d rub, %d positions), Senior (%d rub, %d positions)\n",
-			companyName, juniorVacancy.Payment, company.VacantPlaces[juniorVacancy],
-			seniorVacancy.Payment, company.VacantPlaces[seniorVacancy])
-	}
+	allVacancies := components.CreateVacancies(city)
 
 	// Create 100 humans
-	var people []*Human
+	var people []*types.Human
 	for i := 0; i < 100; i++ {
-		human := NewHuman(make(map[*Human]bool), city, globalTargets)
+		human := types.NewHuman(make(map[*types.Human]bool), city, globalTargets)
 		human.Money = 10000 // Starting capital
 
 		// 90% of people start with a job (unemployment rate ~7% in Russia)
 		if i < 90 { // First 90 out of 100 people get jobs
 			// Randomly assign to available vacancies
-			availableVacancies := make([]*Vacancy, 0)
+			availableVacancies := make([]*types.Vacancy, 0)
 			for _, vacancy := range allVacancies {
 				if vacancy.Parent.VacantPlaces[vacancy] > 0 {
 					// Check if human can work (has required skills)
@@ -107,11 +70,11 @@ func main() {
 					}
 				}
 			}
-			
+
 			if len(availableVacancies) > 0 {
-				chosenVacancy := availableVacancies[GlobalRandom.NextInt(len(availableVacancies))]
+				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
 				human.Job = chosenVacancy
-				human.JobTime = uint64(GlobalRandom.NextInt(2000)) // Random work experience 0-2000 hours
+				human.JobTime = uint64(utils.GlobalRandom.NextInt(2000)) // Random work experience 0-2000 hours
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
 			}
 		}
@@ -132,7 +95,7 @@ func main() {
 	}
 
 	// Simulation parameters
-	const hoursPerYear = 365 * 24        // 1 year in hours
+	const hoursPerYear = 365 * 24       // 1 year in hours
 	const totalHours = 1 * hoursPerYear // Total simulation time
 
 	var iterateTimer time.Duration
@@ -147,7 +110,7 @@ func main() {
 		for _, person := range people {
 			wg.Add(1)
 
-			go func(person *Human) {
+			go func(person *types.Human) {
 				defer wg.Done()
 				if !person.Dead {
 					person.IterateHour()
@@ -160,7 +123,7 @@ func main() {
 		iterateTimer += time.Since(startTime)
 
 		// Increment global time
-		GlobalTick.Increment()
+		utils.GlobalTick.Increment()
 	}
 
 	fmt.Printf("Simulation completed. Total iteration time: %v\n", iterateTimer)

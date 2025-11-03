@@ -1,10 +1,12 @@
-package main
+package types
 
 import (
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/fallra1n/humanity/utils"
 )
 
 // Action represents a concrete action that can be performed
@@ -70,7 +72,7 @@ func (a *Action) Executable(person *Human) bool {
 
 			var values [2]int64
 			for i, part := range parts {
-				if IsNatural(part) {
+				if utils.IsNatural(part) {
 					val, _ := strconv.ParseInt(part, 10, 64)
 					values[i] = val
 				} else {
@@ -87,7 +89,7 @@ func (a *Action) Executable(person *Human) bool {
 				}
 			}
 
-			if !Compare(values[0], comparison, values[1]) {
+			if !utils.Compare(values[0], comparison, values[1]) {
 				return false
 			}
 		} else {
@@ -150,7 +152,7 @@ func NewLocalTarget(name string, tags []string, allActions []*Action) *LocalTarg
 
 	actionsPossible := make(map[*Action]bool)
 	for _, action := range allActions {
-		if len(IntersectSlices(tags, getKeysFromMap(action.Tags))) > 0 {
+		if len(utils.IntersectSlices(tags, getKeysFromMap(action.Tags))) > 0 {
 			actionsPossible[action] = true
 		}
 	}
@@ -248,7 +250,7 @@ func (lt *LocalTarget) ChooseAction(person *Human) *Action {
 
 		candidates := rating[maxRate]
 		if len(candidates) > 0 {
-			return candidates[GlobalRandom.NextInt(len(candidates))]
+			return candidates[utils.GlobalRandom.NextInt(len(candidates))]
 		}
 	}
 
@@ -273,7 +275,7 @@ func NewGlobalTarget(name string, tags []string, power float64, allTargets []*Lo
 
 	targetsPossible := make(map[*LocalTarget]bool)
 	for _, target := range allTargets {
-		if len(IntersectSlices(tags, getKeysFromMap(target.Tags))) > 0 {
+		if len(utils.IntersectSlices(tags, getKeysFromMap(target.Tags))) > 0 {
 			targetsPossible[target] = true
 		}
 	}
@@ -372,7 +374,7 @@ func (gt *GlobalTarget) ChooseTarget(person *Human) *LocalTarget {
 
 		candidates := rating[maxRate]
 		if len(candidates) > 0 {
-			return candidates[GlobalRandom.NextInt(len(candidates))]
+			return candidates[utils.GlobalRandom.NextInt(len(candidates))]
 		}
 	}
 
@@ -397,14 +399,14 @@ func NewSplash(name string, tags []string, lifeLength uint64) *Splash {
 	return &Splash{
 		Name:       name,
 		Tags:       tagSet,
-		AppearTime: GlobalTick.Get(),
+		AppearTime: utils.GlobalTick.Get(),
 		LifeLength: lifeLength,
 	}
 }
 
 // IsExpired checks if splash has expired
 func (s *Splash) IsExpired() bool {
-	return GlobalTick.Get()-s.AppearTime > s.LifeLength
+	return utils.GlobalTick.Get()-s.AppearTime > s.LifeLength
 }
 
 // Human represents a person in the simulation
@@ -429,7 +431,7 @@ type Human struct {
 // NewHuman creates a new human
 func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*GlobalTarget) *Human {
 	// Generate age with normal distribution
-	age := math.Max(20, math.Min(80, GlobalRandom.NextNormal(25.0, 10.0)))
+	age := math.Max(20, math.Min(80, utils.GlobalRandom.NextNormal(25.0, 10.0)))
 
 	human := &Human{
 		Age:                    age,
@@ -455,14 +457,14 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 	}
 
 	// Assign random global targets
-	numTargets := 2 + GlobalRandom.NextInt(2) // 2-3 targets
+	numTargets := 2 + utils.GlobalRandom.NextInt(2) // 2-3 targets
 	if numTargets > len(globalTargets) {
 		numTargets = len(globalTargets)
 	}
 
 	selectedTargets := make(map[string]bool)
 	for len(human.GlobalTargets) < numTargets {
-		target := globalTargets[GlobalRandom.NextInt(len(globalTargets))]
+		target := globalTargets[utils.GlobalRandom.NextInt(len(globalTargets))]
 		if !selectedTargets[target.Name] {
 			// Create a copy of the global target for this human
 			newTarget := &GlobalTarget{
@@ -516,7 +518,7 @@ func (h *Human) findJob() {
 	}
 
 	if len(possibleJobs) > 0 {
-		chosen := possibleJobs[GlobalRandom.NextInt(len(possibleJobs))]
+		chosen := possibleJobs[utils.GlobalRandom.NextInt(len(possibleJobs))]
 
 		// Quit old job
 		if h.Job != nil {
@@ -585,13 +587,13 @@ func (h *Human) IterateHour() {
 	h.Age += 1.0 / (24 * 365)
 
 	// Daily expenses
-	if GlobalTick.Get()%24 == 0 {
+	if utils.GlobalTick.Get()%24 == 0 {
 		h.Money -= 500
 		// DebugLogger.Printf("Hour %d: human #%d spent 500 rub on base daily expenses. Money left: %d",
 		//	GlobalTick.Get(), GlobalHumanStorage.Get(h), h.Money)
 
 		// Monthly salary
-		if h.Job != nil && GlobalTick.Get()%(30*24) == 0 {
+		if h.Job != nil && utils.GlobalTick.Get()%(30*24) == 0 {
 			h.Money += int64(h.Job.Payment)
 			// DebugLogger.Printf("Hour %d: human #%d got payment. Money balance: %d",
 			//	GlobalTick.Get(), GlobalHumanStorage.Get(h), h.Money)
@@ -682,7 +684,7 @@ func (h *Human) performActions() {
 		for target := range h.GlobalTargets {
 			var counter uint64 = 0
 			for _, splash := range h.Splashes {
-				if len(IntersectSlices(getKeysFromMap(target.Tags), getKeysFromMap(splash.Tags))) > 0 {
+				if len(utils.IntersectSlices(getKeysFromMap(target.Tags), getKeysFromMap(splash.Tags))) > 0 {
 					counter++
 				}
 			}
@@ -714,7 +716,7 @@ func (h *Human) performActions() {
 	}
 
 	candidates := rating[maxRate]
-	selectedGlobalTarget := candidates[GlobalRandom.NextInt(len(candidates))]
+	selectedGlobalTarget := candidates[utils.GlobalRandom.NextInt(len(candidates))]
 
 	selectedLocalTarget := selectedGlobalTarget.ChooseTarget(h)
 	if selectedLocalTarget != nil {

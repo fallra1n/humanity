@@ -4,16 +4,19 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/fallra1n/humanity/types"
+	"github.com/fallra1n/humanity/utils"
 )
 
 // LoadActions loads actions from configuration file
-func LoadActions(filename string) ([]*Action, error) {
-	sequences, err := LoadSequencesFromFile(filename)
+func LoadActions(filename string) ([]*types.Action, error) {
+	sequences, err := utils.LoadSequencesFromFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	var actions []*Action
+	var actions []*types.Action
 
 	for _, words := range sequences {
 		if len(words) < 4 {
@@ -80,7 +83,7 @@ func LoadActions(filename string) ([]*Action, error) {
 			}
 		}
 
-		action := NewAction(name, price, timeToExecute, tags, rules, items, removableItems, bonusMoney)
+		action := types.NewAction(name, price, timeToExecute, tags, rules, items, removableItems, bonusMoney)
 		actions = append(actions, action)
 	}
 
@@ -88,13 +91,13 @@ func LoadActions(filename string) ([]*Action, error) {
 }
 
 // LoadLocalTargets loads local targets from configuration file
-func LoadLocalTargets(filename string, allActions []*Action) ([]*LocalTarget, error) {
-	sequences, err := LoadSequencesFromFile(filename)
+func LoadLocalTargets(filename string, allActions []*types.Action) ([]*types.LocalTarget, error) {
+	sequences, err := utils.LoadSequencesFromFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	var targets []*LocalTarget
+	var targets []*types.LocalTarget
 
 	for _, words := range sequences {
 		if len(words) < 2 {
@@ -104,7 +107,7 @@ func LoadLocalTargets(filename string, allActions []*Action) ([]*LocalTarget, er
 		name := words[0]
 		tags := words[1:]
 
-		target := NewLocalTarget(name, tags, allActions)
+		target := types.NewLocalTarget(name, tags, allActions)
 		targets = append(targets, target)
 	}
 
@@ -112,13 +115,13 @@ func LoadLocalTargets(filename string, allActions []*Action) ([]*LocalTarget, er
 }
 
 // LoadGlobalTargets loads global targets from configuration file
-func LoadGlobalTargets(filename string, allLocalTargets []*LocalTarget) ([]*GlobalTarget, error) {
-	sequences, err := LoadSequencesFromFile(filename)
+func LoadGlobalTargets(filename string, allLocalTargets []*types.LocalTarget) ([]*types.GlobalTarget, error) {
+	sequences, err := utils.LoadSequencesFromFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	var targets []*GlobalTarget
+	var targets []*types.GlobalTarget
 
 	for _, words := range sequences {
 		if len(words) < 2 {
@@ -142,7 +145,7 @@ func LoadGlobalTargets(filename string, allLocalTargets []*LocalTarget) ([]*Glob
 			tags = words[1:]
 		}
 
-		target := NewGlobalTarget(name, tags, power, allLocalTargets)
+		target := types.NewGlobalTarget(name, tags, power, allLocalTargets)
 		targets = append(targets, target)
 	}
 
@@ -150,12 +153,12 @@ func LoadGlobalTargets(filename string, allLocalTargets []*LocalTarget) ([]*Glob
 }
 
 // CreateNameMaps creates lookup maps for actions, local targets, and global targets
-func CreateNameMaps(actions []*Action, localTargets []*LocalTarget, globalTargets []*GlobalTarget) (
-	map[string]*Action, map[string]*LocalTarget, map[string]*GlobalTarget, error) {
+func CreateNameMaps(actions []*types.Action, localTargets []*types.LocalTarget, globalTargets []*types.GlobalTarget) (
+	map[string]*types.Action, map[string]*types.LocalTarget, map[string]*types.GlobalTarget, error) {
 
-	actionMap := make(map[string]*Action)
-	localMap := make(map[string]*LocalTarget)
-	globalMap := make(map[string]*GlobalTarget)
+	actionMap := make(map[string]*types.Action)
+	localMap := make(map[string]*types.LocalTarget)
+	globalMap := make(map[string]*types.GlobalTarget)
 
 	// Check for duplicates and create action map
 	for _, action := range actions {

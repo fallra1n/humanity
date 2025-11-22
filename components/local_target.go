@@ -1,6 +1,7 @@
 package components
 
 import (
+	"sync"
 	"github.com/fallra1n/humanity/utils"
 )
 
@@ -10,6 +11,7 @@ type LocalTarget struct {
 	Tags            map[string]bool
 	ActionsPossible map[*Action]bool
 	ActionsExecuted map[*Action]bool
+	Mu              sync.RWMutex
 }
 
 // NewLocalTarget creates a new LocalTarget
@@ -36,12 +38,17 @@ func NewLocalTarget(name string, tags []string, allActions []*Action) *LocalTarg
 
 // MarkAsExecuted marks an action as executed
 func (lt *LocalTarget) MarkAsExecuted(action *Action) {
+	lt.Mu.Lock()
+	defer lt.Mu.Unlock()
 	delete(lt.ActionsPossible, action)
 	lt.ActionsExecuted[action] = true
 }
 
 // IsExecutedFull checks if all tags are covered by executed actions
 func (lt *LocalTarget) IsExecutedFull() bool {
+	lt.Mu.RLock()
+	defer lt.Mu.RUnlock()
+	
 	remainingTags := make(map[string]bool)
 	for tag := range lt.Tags {
 		remainingTags[tag] = true
@@ -58,6 +65,9 @@ func (lt *LocalTarget) IsExecutedFull() bool {
 
 // Executable checks if the local target can be executed
 func (lt *LocalTarget) Executable(person *Human) bool {
+	lt.Mu.RLock()
+	defer lt.Mu.RUnlock()
+	
 	unclosedTags := make(map[string]bool)
 	for tag := range lt.Tags {
 		unclosedTags[tag] = true
@@ -84,6 +94,9 @@ func (lt *LocalTarget) Executable(person *Human) bool {
 
 // ChooseAction selects the best action for this target
 func (lt *LocalTarget) ChooseAction(person *Human) *Action {
+	lt.Mu.RLock()
+	defer lt.Mu.RUnlock()
+	
 	leftTags := make(map[string]bool)
 	for tag := range lt.Tags {
 		leftTags[tag] = true

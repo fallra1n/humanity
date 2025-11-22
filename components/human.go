@@ -11,6 +11,7 @@ import (
 // Human represents a person in the simulation
 type Human struct {
 	Age                    float64
+	Gender                 Gender
 	Dead                   bool
 	BusyHours              uint64
 	Money                  int64
@@ -32,8 +33,17 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 	// Generate age with normal distribution
 	age := math.Max(20, math.Min(80, utils.GlobalRandom.NextNormal(25.0, 10.0)))
 
+	// Randomly assign gender (50/50 chance)
+	var gender Gender
+	if utils.GlobalRandom.NextFloat() < 0.5 {
+		gender = Male
+	} else {
+		gender = Female
+	}
+
 	human := &Human{
 		Age:                    age,
+		Gender:                 gender,
 		Dead:                   false,
 		BusyHours:              0,
 		Money:                  7000,
@@ -97,7 +107,9 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 func (h *Human) findJob() {
 	var possibleJobs []*Vacancy
 
+	h.HomeLocation.Mu.RLock()
 	for job := range h.HomeLocation.Jobs {
+		job.Mu.RLock()
 		for vacancy, count := range job.VacantPlaces {
 			if count > 0 {
 				// Balanced job requirements
@@ -126,20 +138,26 @@ func (h *Human) findJob() {
 				}
 			}
 		}
+		job.Mu.RUnlock()
 	}
+	h.HomeLocation.Mu.RUnlock()
 
 	if len(possibleJobs) > 0 {
 		chosen := possibleJobs[utils.GlobalRandom.NextInt(len(possibleJobs))]
 
 		// Quit old job
 		if h.Job != nil {
+			h.Job.Parent.Mu.Lock()
 			h.Job.Parent.VacantPlaces[h.Job]++
+			h.Job.Parent.Mu.Unlock()
 		}
 
 		// Take new job
+		chosen.Parent.Mu.Lock()
 		h.Job = chosen
 		chosen.Parent.VacantPlaces[chosen]--
 		h.JobTime = 0
+		chosen.Parent.Mu.Unlock()
 	}
 }
 
@@ -162,7 +180,9 @@ func (h *Human) checkJobMarket() {
 	var betterJobs []*Vacancy
 	currentSalary := h.Job.Payment
 
+	h.HomeLocation.Mu.RLock()
 	for job := range h.HomeLocation.Jobs {
+		job.Mu.RLock()
 		for vacancy, count := range job.VacantPlaces {
 			// Look for jobs with moderate pay increase (10% or more)
 			minSalaryIncrease := int(float64(currentSalary) * 1.10)
@@ -184,7 +204,9 @@ func (h *Human) checkJobMarket() {
 				}
 			}
 		}
+		job.Mu.RUnlock()
 	}
+	h.HomeLocation.Mu.RUnlock()
 
 	// Consider job change with moderate probability
 	if len(betterJobs) > 0 {
@@ -201,12 +223,16 @@ func (h *Human) checkJobMarket() {
 
 		if utils.GlobalRandom.NextFloat() < changeProb {
 			// Quit current job
+			h.Job.Parent.Mu.Lock()
 			h.Job.Parent.VacantPlaces[h.Job]++
+			h.Job.Parent.Mu.Unlock()
 			
 			// Take new job
+			bestJob.Parent.Mu.Lock()
 			h.Job = bestJob
 			bestJob.Parent.VacantPlaces[bestJob]--
 			h.JobTime = 0 // Reset job experience
+			bestJob.Parent.Mu.Unlock()
 
 			// Add a splash about career advancement
 			splash := NewSplash("career_advancement", []string{"career", "money", "well-being"}, 48)
@@ -222,7 +248,9 @@ func (h *Human) FireEmployee(reason string) {
 	}
 
 	// Return the vacant position
+	h.Job.Parent.Mu.Lock()
 	h.Job.Parent.VacantPlaces[h.Job]++
+	h.Job.Parent.Mu.Unlock()
 
 	// Remove job from human
 	h.Job = nil
@@ -495,6 +523,7 @@ func (h *Human) performActions() {
 func (h *Human) PrintInitialInfo(id int) {
 	fmt.Printf("=== Human #%d Initial State ===\n", id)
 	fmt.Printf("Age: %.1f years\n", h.Age)
+	fmt.Printf("Gender: %s\n", h.Gender)
 	fmt.Printf("Money: %d rubles\n", h.Money)
 	fmt.Printf("Job: %s\n", h.getJobStatus())
 
@@ -516,6 +545,7 @@ func (h *Human) PrintFinalInfo(id int) {
 	fmt.Printf("=== Human #%d Final State ===\n", id)
 	fmt.Printf("Status: %s\n", h.getLifeStatus())
 	fmt.Printf("Age: %.1f years\n", h.Age)
+	fmt.Printf("Gender: %s\n", h.Gender)
 	fmt.Printf("Money: %d rubles\n", h.Money)
 	fmt.Printf("Job: %s\n", h.getJobStatus())
 

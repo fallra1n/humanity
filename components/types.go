@@ -1,6 +1,7 @@
 package components
 
 import (
+	"sync"
 	"github.com/fallra1n/humanity/utils"
 )
 
@@ -15,6 +16,7 @@ type Vacancy struct {
 type Job struct {
 	VacantPlaces map[*Vacancy]uint64
 	HomeLocation *Location
+	Mu           sync.RWMutex
 }
 
 // Location represents a place where humans live and work
@@ -22,6 +24,7 @@ type Location struct {
 	Jobs   map[*Job]bool
 	Humans map[*Human]bool
 	Paths  map[*Path]bool
+	Mu     sync.RWMutex
 }
 
 // Path represents a connection between locations

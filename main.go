@@ -55,6 +55,7 @@ func main() {
 			// Randomly assign to available vacancies
 			availableVacancies := make([]*components.Vacancy, 0)
 			for _, vacancy := range allVacancies {
+				vacancy.Parent.Mu.RLock()
 				if vacancy.Parent.VacantPlaces[vacancy] > 0 {
 					// Check if human can work (has required skills)
 					canWork := true
@@ -68,18 +69,23 @@ func main() {
 						availableVacancies = append(availableVacancies, vacancy)
 					}
 				}
+				vacancy.Parent.Mu.RUnlock()
 			}
 
 			if len(availableVacancies) > 0 {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
+				chosenVacancy.Parent.Mu.Lock()
 				human.Job = chosenVacancy
 				human.JobTime = uint64(utils.GlobalRandom.NextInt(2000)) // Random work experience 0-2000 hours
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
+				chosenVacancy.Parent.Mu.Unlock()
 			}
 		}
 
 		people = append(people, human)
+		city.Mu.Lock()
 		city.Humans[human] = true
+		city.Mu.Unlock()
 	}
 
 	fmt.Printf("\nCreated %d people, %d employed, %d unemployed\n",
@@ -154,6 +160,8 @@ func main() {
 	totalMoney := int64(0)
 	employedCount := 0
 	totalItems := 0
+	maleCount := 0
+	femaleCount := 0
 
 	for _, person := range people {
 		if !person.Dead {
@@ -162,11 +170,18 @@ func main() {
 		if person.Job != nil {
 			employedCount++
 		}
+		if person.Gender == components.Male {
+			maleCount++
+		} else {
+			femaleCount++
+		}
 		completedTargetsCount += len(person.CompletedGlobalTargets)
 		totalMoney += person.Money
 		totalItems += len(person.Items)
 	}
 
+	fmt.Printf("Population: %d humans (%d male, %d female)\n",
+		len(people), maleCount, femaleCount)
 	fmt.Printf("Survival Rate: %d/%d humans alive (%.1f%%)\n",
 		aliveCount, len(people), float64(aliveCount)/float64(len(people))*100)
 	fmt.Printf("Employment Rate: %d/%d humans employed (%.1f%%)\n",

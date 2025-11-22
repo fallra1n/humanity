@@ -1,6 +1,7 @@
 package components
 
 import (
+	"sync"
 	"github.com/fallra1n/humanity/utils"
 )
 
@@ -11,6 +12,7 @@ type GlobalTarget struct {
 	Power           float64
 	TargetsPossible map[*LocalTarget]bool
 	TargetsExecuted map[*LocalTarget]bool
+	Mu              sync.RWMutex
 }
 
 // NewGlobalTarget creates a new GlobalTarget
@@ -38,12 +40,17 @@ func NewGlobalTarget(name string, tags []string, power float64, allTargets []*Lo
 
 // MarkAsExecuted marks a local target as executed
 func (gt *GlobalTarget) MarkAsExecuted(target *LocalTarget) {
+	gt.Mu.Lock()
+	defer gt.Mu.Unlock()
 	delete(gt.TargetsPossible, target)
 	gt.TargetsExecuted[target] = true
 }
 
 // IsExecutedFull checks if all tags are covered
 func (gt *GlobalTarget) IsExecutedFull() bool {
+	gt.Mu.RLock()
+	defer gt.Mu.RUnlock()
+	
 	remainingTags := make(map[string]bool)
 	for tag := range gt.Tags {
 		remainingTags[tag] = true
@@ -60,6 +67,9 @@ func (gt *GlobalTarget) IsExecutedFull() bool {
 
 // Executable checks if the global target can be executed
 func (gt *GlobalTarget) Executable(person *Human) bool {
+	gt.Mu.RLock()
+	defer gt.Mu.RUnlock()
+	
 	unclosedTags := make(map[string]bool)
 	for tag := range gt.Tags {
 		unclosedTags[tag] = true
@@ -86,6 +96,9 @@ func (gt *GlobalTarget) Executable(person *Human) bool {
 
 // ChooseTarget selects the best local target for this global target
 func (gt *GlobalTarget) ChooseTarget(person *Human) *LocalTarget {
+	gt.Mu.RLock()
+	defer gt.Mu.RUnlock()
+	
 	leftTags := make(map[string]bool)
 	for tag := range gt.Tags {
 		leftTags[tag] = true

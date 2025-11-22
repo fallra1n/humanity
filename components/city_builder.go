@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"github.com/fallra1n/humanity/config"
 	"github.com/fallra1n/humanity/utils"
 )
 
@@ -19,18 +20,18 @@ func CreateSmallCity(name string) *Location {
 	buildingID := 1
 
 	// 1 Hospital
-	hospital := NewBuilding(buildingID, Hospital, fmt.Sprintf("%s Hospital", name), 50, city)
+	hospital := NewBuilding(buildingID, Hospital, fmt.Sprintf("%s Hospital", name), config.SmallCityHospitalCapacity, city)
 	city.Buildings[hospital] = true
 	buildingID++
 
 	// 1 School
-	school := NewBuilding(buildingID, School, fmt.Sprintf("%s School", name), 200, city)
+	school := NewBuilding(buildingID, School, fmt.Sprintf("%s School", name), config.SmallCitySchoolCapacity, city)
 	city.Buildings[school] = true
 	buildingID++
 
 	// 2 Workplaces
 	for i := 1; i <= 2; i++ {
-		workplace := NewBuilding(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), 100, city)
+		workplace := NewBuilding(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), config.SmallCityWorkplaceCapacity, city)
 		
 		// Create jobs for this workplace
 		job := &Job{
@@ -40,16 +41,18 @@ func CreateSmallCity(name string) *Location {
 		}
 
 		// Create junior and senior positions
+		salaryRange := config.SmallCityJuniorSalaryMax - config.SmallCityJuniorSalaryMin
 		juniorVacancy := &Vacancy{
 			Parent:       job,
 			RequiredTags: make(map[string]bool),
-			Payment:      30000 + utils.GlobalRandom.NextInt(15000), // 30-45k rubles
+			Payment:      config.SmallCityJuniorSalaryMin + utils.GlobalRandom.NextInt(salaryRange),
 		}
 
+		salaryRange = config.SmallCitySeniorSalaryMax - config.SmallCitySeniorSalaryMin
 		seniorVacancy := &Vacancy{
 			Parent:       job,
 			RequiredTags: make(map[string]bool),
-			Payment:      50000 + utils.GlobalRandom.NextInt(25000), // 50-75k rubles
+			Payment:      config.SmallCitySeniorSalaryMin + utils.GlobalRandom.NextInt(salaryRange),
 		}
 
 		// Some senior positions require education
@@ -57,9 +60,10 @@ func CreateSmallCity(name string) *Location {
 			seniorVacancy.RequiredTags["engineer_diploma"] = true
 		}
 
-		// Each vacancy has 3-7 positions in small city
-		job.VacantPlaces[juniorVacancy] = uint64(3 + utils.GlobalRandom.NextInt(5))
-		job.VacantPlaces[seniorVacancy] = uint64(3 + utils.GlobalRandom.NextInt(5))
+		// Each vacancy has positions based on config
+		vacancyRange := config.SmallCityVacanciesMax - config.SmallCityVacanciesMin
+		job.VacantPlaces[juniorVacancy] = uint64(config.SmallCityVacanciesMin + utils.GlobalRandom.NextInt(vacancyRange))
+		job.VacantPlaces[seniorVacancy] = uint64(config.SmallCityVacanciesMin + utils.GlobalRandom.NextInt(vacancyRange))
 
 		workplace.AddJob(job)
 		city.Jobs[job] = true
@@ -68,23 +72,23 @@ func CreateSmallCity(name string) *Location {
 	}
 
 	// 1 Entertainment center
-	entertainment := NewBuilding(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), 150, city)
+	entertainment := NewBuilding(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), config.SmallCityEntertainmentCapacity, city)
 	city.Buildings[entertainment] = true
 	buildingID++
 
 	// 1 Cafe
-	cafe := NewBuilding(buildingID, Cafe, fmt.Sprintf("%s Cafe", name), 30, city)
+	cafe := NewBuilding(buildingID, Cafe, fmt.Sprintf("%s Cafe", name), config.SmallCityCafeCapacity, city)
 	city.Buildings[cafe] = true
 	buildingID++
 
 	// 1 Shop
-	shop := NewBuilding(buildingID, Shop, fmt.Sprintf("%s Shop", name), 40, city)
+	shop := NewBuilding(buildingID, Shop, fmt.Sprintf("%s Shop", name), config.SmallCityShopCapacity, city)
 	city.Buildings[shop] = true
 	buildingID++
 
 	// 3 Residential houses
 	for i := 1; i <= 3; i++ {
-		house := NewBuilding(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), 15, city)
+		house := NewBuilding(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), config.SmallCityHouseCapacity, city)
 		city.Buildings[house] = true
 		buildingID++
 	}
@@ -107,21 +111,21 @@ func CreateLargeCity(name string) *Location {
 
 	// 2 Hospitals
 	for i := 1; i <= 2; i++ {
-		hospital := NewBuilding(buildingID, Hospital, fmt.Sprintf("%s Hospital %d", name, i), 75, city)
+		hospital := NewBuilding(buildingID, Hospital, fmt.Sprintf("%s Hospital %d", name, i), config.LargeCityHospitalCapacity, city)
 		city.Buildings[hospital] = true
 		buildingID++
 	}
 
 	// 2 Schools
 	for i := 1; i <= 2; i++ {
-		school := NewBuilding(buildingID, School, fmt.Sprintf("%s School %d", name, i), 300, city)
+		school := NewBuilding(buildingID, School, fmt.Sprintf("%s School %d", name, i), config.LargeCitySchoolCapacity, city)
 		city.Buildings[school] = true
 		buildingID++
 	}
 
 	// 3 Workplaces
 	for i := 1; i <= 3; i++ {
-		workplace := NewBuilding(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), 150, city)
+		workplace := NewBuilding(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), config.LargeCityWorkplaceCapacity, city)
 		
 		// Create jobs for this workplace
 		job := &Job{
@@ -131,16 +135,18 @@ func CreateLargeCity(name string) *Location {
 		}
 
 		// Create junior and senior positions
+		salaryRange := config.LargeCityJuniorSalaryMax - config.LargeCityJuniorSalaryMin
 		juniorVacancy := &Vacancy{
 			Parent:       job,
 			RequiredTags: make(map[string]bool),
-			Payment:      35000 + utils.GlobalRandom.NextInt(20000), // 35-55k rubles (higher in large city)
+			Payment:      config.LargeCityJuniorSalaryMin + utils.GlobalRandom.NextInt(salaryRange),
 		}
 
+		salaryRange = config.LargeCitySeniorSalaryMax - config.LargeCitySeniorSalaryMin
 		seniorVacancy := &Vacancy{
 			Parent:       job,
 			RequiredTags: make(map[string]bool),
-			Payment:      60000 + utils.GlobalRandom.NextInt(30000), // 60-90k rubles (higher in large city)
+			Payment:      config.LargeCitySeniorSalaryMin + utils.GlobalRandom.NextInt(salaryRange),
 		}
 
 		// Some senior positions require education
@@ -148,9 +154,10 @@ func CreateLargeCity(name string) *Location {
 			seniorVacancy.RequiredTags["engineer_diploma"] = true
 		}
 
-		// Each vacancy has 5-10 positions in large city
-		job.VacantPlaces[juniorVacancy] = uint64(5 + utils.GlobalRandom.NextInt(6))
-		job.VacantPlaces[seniorVacancy] = uint64(5 + utils.GlobalRandom.NextInt(6))
+		// Each vacancy has positions based on config
+		vacancyRange := config.LargeCityVacanciesMax - config.LargeCityVacanciesMin
+		job.VacantPlaces[juniorVacancy] = uint64(config.LargeCityVacanciesMin + utils.GlobalRandom.NextInt(vacancyRange))
+		job.VacantPlaces[seniorVacancy] = uint64(config.LargeCityVacanciesMin + utils.GlobalRandom.NextInt(vacancyRange))
 
 		workplace.AddJob(job)
 		city.Jobs[job] = true
@@ -159,27 +166,27 @@ func CreateLargeCity(name string) *Location {
 	}
 
 	// 1 Entertainment center
-	entertainment := NewBuilding(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), 200, city)
+	entertainment := NewBuilding(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), config.LargeCityEntertainmentCapacity, city)
 	city.Buildings[entertainment] = true
 	buildingID++
 
 	// 2 Cafes
 	for i := 1; i <= 2; i++ {
-		cafe := NewBuilding(buildingID, Cafe, fmt.Sprintf("%s Cafe %d", name, i), 40, city)
+		cafe := NewBuilding(buildingID, Cafe, fmt.Sprintf("%s Cafe %d", name, i), config.LargeCityCafeCapacity, city)
 		city.Buildings[cafe] = true
 		buildingID++
 	}
 
 	// 2 Shops
 	for i := 1; i <= 2; i++ {
-		shop := NewBuilding(buildingID, Shop, fmt.Sprintf("%s Shop %d", name, i), 50, city)
+		shop := NewBuilding(buildingID, Shop, fmt.Sprintf("%s Shop %d", name, i), config.LargeCityShopCapacity, city)
 		city.Buildings[shop] = true
 		buildingID++
 	}
 
 	// 3 Residential houses
 	for i := 1; i <= 3; i++ {
-		house := NewBuilding(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), 25, city)
+		house := NewBuilding(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), config.LargeCityHouseCapacity, city)
 		city.Buildings[house] = true
 		buildingID++
 	}

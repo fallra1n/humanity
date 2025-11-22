@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fallra1n/humanity/components"
+	"github.com/fallra1n/humanity/config"
 	"github.com/fallra1n/humanity/utils"
 )
 
@@ -43,14 +44,15 @@ func main() {
 	components.PrintCityInfo(smallCity)
 	components.PrintCityInfo(largeCity)
 
-	// Create people for each city separately to ensure 90% employment in each
+	// Create people for each city separately to ensure employment rate in each
 	var people []*components.Human
-	
-	// Small city: 40 people, 36 employed (90%)
+
+	// Small city population and employment
+	smallCityEmployed := int(float64(config.SmallCityPopulation) * config.EmploymentRate)
 	smallCityResidential := components.GetResidentialBuildings(smallCity)
-	for i := 0; i < 40; i++ {
+	for i := 0; i < config.SmallCityPopulation; i++ {
 		human := components.NewHuman(make(map[*components.Human]bool), smallCity, globalTargets)
-		human.Money = 10000 // Starting capital
+		human.Money = config.StartingMoney
 
 		// Assign residential building
 		assigned := false
@@ -64,52 +66,50 @@ func main() {
 			fmt.Printf("Warning: Could not assign residential building to small city human %d\n", i+1)
 		}
 
-		// 90% employment (first 36 out of 40 get jobs)
-		if i < 36 {
+		// Employment based on config rate
+		if i < smallCityEmployed {
 			var availableVacancies []*components.Vacancy
 			
-			smallCity.Mu.RLock()
-			for job := range smallCity.Jobs {
-				job.Mu.RLock()
-				for vacancy, count := range job.VacantPlaces {
-					if count > 0 {
-						canWork := true
-						for requiredTag := range vacancy.RequiredTags {
-							if human.Items[requiredTag] <= 0 {
-								canWork = false
-								break
+			// Look for jobs in workplace buildings
+			for building := range smallCity.Buildings {
+				if building.Type == components.Workplace {
+					for job := range building.Jobs {
+						for vacancy, count := range job.VacantPlaces {
+							if count > 0 {
+								canWork := true
+								for requiredTag := range vacancy.RequiredTags {
+									if human.Items[requiredTag] <= 0 {
+										canWork = false
+										break
+									}
+								}
+								if canWork {
+									availableVacancies = append(availableVacancies, vacancy)
+								}
 							}
-						}
-						if canWork {
-							availableVacancies = append(availableVacancies, vacancy)
 						}
 					}
 				}
-				job.Mu.RUnlock()
 			}
-			smallCity.Mu.RUnlock()
 
 			if len(availableVacancies) > 0 {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
-				chosenVacancy.Parent.Mu.Lock()
 				human.Job = chosenVacancy
-				human.JobTime = uint64(utils.GlobalRandom.NextInt(2000))
+				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
-				chosenVacancy.Parent.Mu.Unlock()
 			}
 		}
 
 		people = append(people, human)
-		smallCity.Mu.Lock()
 		smallCity.Humans[human] = true
-		smallCity.Mu.Unlock()
 	}
 
-	// Large city: 60 people, 54 employed (90%)
+	// Large city population and employment
+	largeCityEmployed := int(float64(config.LargeCityPopulation) * config.EmploymentRate)
 	largeCityResidential := components.GetResidentialBuildings(largeCity)
-	for i := 0; i < 60; i++ {
+	for i := 0; i < config.LargeCityPopulation; i++ {
 		human := components.NewHuman(make(map[*components.Human]bool), largeCity, globalTargets)
-		human.Money = 10000 // Starting capital
+		human.Money = config.StartingMoney
 
 		// Assign residential building
 		assigned := false
@@ -123,68 +123,67 @@ func main() {
 			fmt.Printf("Warning: Could not assign residential building to large city human %d\n", i+1)
 		}
 
-		// 90% employment (first 54 out of 60 get jobs)
-		if i < 54 {
+		// Employment based on config rate
+		if i < largeCityEmployed {
 			var availableVacancies []*components.Vacancy
 			
-			largeCity.Mu.RLock()
-			for job := range largeCity.Jobs {
-				job.Mu.RLock()
-				for vacancy, count := range job.VacantPlaces {
-					if count > 0 {
-						canWork := true
-						for requiredTag := range vacancy.RequiredTags {
-							if human.Items[requiredTag] <= 0 {
-								canWork = false
-								break
+			// Look for jobs in workplace buildings
+			for building := range largeCity.Buildings {
+				if building.Type == components.Workplace {
+					for job := range building.Jobs {
+						for vacancy, count := range job.VacantPlaces {
+							if count > 0 {
+								canWork := true
+								for requiredTag := range vacancy.RequiredTags {
+									if human.Items[requiredTag] <= 0 {
+										canWork = false
+										break
+									}
+								}
+								if canWork {
+									availableVacancies = append(availableVacancies, vacancy)
+								}
 							}
-						}
-						if canWork {
-							availableVacancies = append(availableVacancies, vacancy)
 						}
 					}
 				}
-				job.Mu.RUnlock()
 			}
-			largeCity.Mu.RUnlock()
 
 			if len(availableVacancies) > 0 {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
-				chosenVacancy.Parent.Mu.Lock()
 				human.Job = chosenVacancy
-				human.JobTime = uint64(utils.GlobalRandom.NextInt(2000))
+				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
-				chosenVacancy.Parent.Mu.Unlock()
 			}
 		}
 
 		people = append(people, human)
-		largeCity.Mu.Lock()
 		largeCity.Humans[human] = true
-		largeCity.Mu.Unlock()
 	}
 
-	// Count employment statistics
-	smallCityEmployed := 0
-	largeCityEmployed := 0
+	// Count actual employment statistics
+	actualSmallCityEmployed := 0
+	actualLargeCityEmployed := 0
 	totalEmployed := 0
-	
+
 	for _, person := range people {
 		if person.Job != nil {
 			totalEmployed++
 			if person.HomeLocation == smallCity {
-				smallCityEmployed++
+				actualSmallCityEmployed++
 			} else {
-				largeCityEmployed++
+				actualLargeCityEmployed++
 			}
 		}
 	}
 
 	fmt.Printf("\nCreated %d people total:\n", len(people))
-	fmt.Printf("  %s: 40 residents, %d employed (%.1f%%)\n",
-		smallCity.Name, smallCityEmployed, float64(smallCityEmployed)/40*100)
-	fmt.Printf("  %s: 60 residents, %d employed (%.1f%%)\n",
-		largeCity.Name, largeCityEmployed, float64(largeCityEmployed)/60*100)
+	fmt.Printf("  %s: %d residents, %d employed (%.1f%%)\n",
+		smallCity.Name, config.SmallCityPopulation, actualSmallCityEmployed,
+		float64(actualSmallCityEmployed)/float64(config.SmallCityPopulation)*100)
+	fmt.Printf("  %s: %d residents, %d employed (%.1f%%)\n",
+		largeCity.Name, config.LargeCityPopulation, actualLargeCityEmployed,
+		float64(actualLargeCityEmployed)/float64(config.LargeCityPopulation)*100)
 	fmt.Printf("Total employment: %d employed, %d unemployed (%.1f%% employment rate)\n",
 		totalEmployed, len(people)-totalEmployed, float64(totalEmployed)/float64(len(people))*100)
 
@@ -196,14 +195,11 @@ func main() {
 		person.PrintInitialInfo(i + 1)
 	}
 
-	// Simulation parameters
-	const hoursPerYear = 365 * 24       // 1 year in hours
-	const totalHours = 1 * hoursPerYear // Total simulation time
-
+	// Simulation parameters from config
 	var iterateTimer time.Duration
 
 	// Main simulation loop
-	for hour := uint64(0); hour < totalHours; hour++ {
+	for hour := uint64(0); hour < config.TotalSimulationHours; hour++ {
 		startTime := time.Now()
 
 		wg := sync.WaitGroup{}

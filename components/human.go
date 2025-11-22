@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/fallra1n/humanity/config"
 	"github.com/fallra1n/humanity/utils"
 )
 
@@ -32,11 +33,11 @@ type Human struct {
 // NewHuman creates a new human
 func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*GlobalTarget) *Human {
 	// Generate age with normal distribution
-	age := math.Max(20, math.Min(80, utils.GlobalRandom.NextNormal(25.0, 10.0)))
+	age := math.Max(config.MinAge, math.Min(config.MaxAge, utils.GlobalRandom.NextNormal(config.MeanAge, config.AgeStdDev)))
 
-	// Randomly assign gender (50/50 chance)
+	// Randomly assign gender
 	var gender Gender
-	if utils.GlobalRandom.NextFloat() < 0.5 {
+	if utils.GlobalRandom.NextFloat() < config.MaleGenderProbability {
 		gender = Male
 	} else {
 		gender = Female

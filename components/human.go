@@ -86,8 +86,6 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 
 			human.GlobalTargets[newTarget] = true
 			selectedTargets[target.Name] = true
-
-			// DebugLogger.Printf("Human #%d got Global target: %s", GlobalHumanStorage.Get(human), target.Name)
 		}
 	}
 
@@ -295,7 +293,6 @@ func (h *Human) IterateHour() {
 	if h.Money <= 0 {
 		splash := NewSplash("need_money", []string{"money", "well-being", "career"}, 24)
 		h.Splashes = append(h.Splashes, splash)
-		// DebugLogger.Printf("Hour %d: human #%d, splash: need_money", GlobalTick.Get(), GlobalHumanStorage.Get(h))
 	}
 
 	// Age relationships
@@ -347,14 +344,10 @@ func (h *Human) IterateHour() {
 	// Daily expenses
 	if utils.GlobalTick.Get()%24 == 0 {
 		h.Money -= 500
-		// DebugLogger.Printf("Hour %d: human #%d spent 500 rub on base daily expenses. Money left: %d",
-		//	GlobalTick.Get(), GlobalHumanStorage.Get(h), h.Money)
 
 		// Monthly salary
 		if h.Job != nil && utils.GlobalTick.Get()%(30*24) == 0 {
 			h.Money += int64(h.Job.Payment)
-			// DebugLogger.Printf("Hour %d: human #%d got payment. Money balance: %d",
-			//	GlobalTick.Get(), GlobalHumanStorage.Get(h), h.Money)
 		}
 	}
 
@@ -483,18 +476,13 @@ func (h *Human) performActions() {
 	if selectedLocalTarget != nil {
 		selectedAction := selectedLocalTarget.ChooseAction(h)
 		if selectedAction != nil {
-			// DebugLogger.Printf("Human #%d chosen main global target \"%s\", local target \"%s\", action \"%s\"",
-			//	GlobalHumanStorage.Get(h), selectedGlobalTarget.Name, selectedLocalTarget.Name, selectedAction.Name)
-
 			selectedAction.Apply(h)
 			selectedLocalTarget.MarkAsExecuted(selectedAction)
 
 			if selectedLocalTarget.IsExecutedFull() {
-				// DebugLogger.Printf("Local target \"%s\" reached", selectedLocalTarget.Name)
 				selectedGlobalTarget.MarkAsExecuted(selectedLocalTarget)
 
 				if selectedGlobalTarget.IsExecutedFull() {
-					// DebugLogger.Printf("Global target \"%s\" reached", selectedGlobalTarget.Name)
 					h.CompletedGlobalTargets[selectedGlobalTarget] = true
 					delete(h.GlobalTargets, selectedGlobalTarget)
 				}

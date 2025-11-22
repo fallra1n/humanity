@@ -3,7 +3,6 @@ package utils
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -150,34 +149,3 @@ func LoadSequencesFromFile(filename string) ([][]string, error) {
 	return result, nil
 }
 
-// Logger setup for debugging
-var (
-	DebugLogger *log.Logger
-	InfoLogger  *log.Logger
-)
-
-const DEBUG_ENABLED = false // Set to true to enable debug logging
-
-func init() {
-	if DEBUG_ENABLED {
-		// Create log files only if debug is enabled
-		debugFile, err := os.OpenFile("logs_2.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			log.Fatalln("Failed to open debug log file:", err)
-		}
-		
-		infoFile, err := os.OpenFile("logs_1.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			log.Fatalln("Failed to open info log file:", err)
-		}
-		
-		DebugLogger = log.New(debugFile, "", log.LstdFlags)
-		InfoLogger = log.New(infoFile, "", log.LstdFlags)
-	} else {
-		// Create no-op loggers that discard output
-		DebugLogger = log.New(os.Stderr, "", 0)
-		DebugLogger.SetOutput(log.Writer()) // This will discard output
-		InfoLogger = log.New(os.Stderr, "", 0)
-		InfoLogger.SetOutput(log.Writer()) // This will discard output
-	}
-}

@@ -18,6 +18,7 @@ type Human struct {
 	Job                    *Vacancy
 	JobTime                uint64
 	HomeLocation           *Location
+	ResidentialBuilding    *Building
 	Parents                map[*Human]float64
 	Family                 map[*Human]float64
 	Children               map[*Human]float64
@@ -107,38 +108,45 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 func (h *Human) findJob() {
 	var possibleJobs []*Vacancy
 
+	// Look for jobs in workplace buildings in the same city
 	h.HomeLocation.Mu.RLock()
-	for job := range h.HomeLocation.Jobs {
-		job.Mu.RLock()
-		for vacancy, count := range job.VacantPlaces {
-			if count > 0 {
-				// Balanced job requirements
-				requiredSkills := 0
-				hasSkills := 0
-				
-				for tag := range vacancy.RequiredTags {
-					requiredSkills++
-					if h.Items[tag] > 0 {
-						hasSkills++
+	for building := range h.HomeLocation.Buildings {
+		if building.Type == Workplace {
+			building.Mu.RLock()
+			for job := range building.Jobs {
+				job.Mu.RLock()
+				for vacancy, count := range job.VacantPlaces {
+					if count > 0 {
+						// Balanced job requirements
+						requiredSkills := 0
+						hasSkills := 0
+						
+						for tag := range vacancy.RequiredTags {
+							requiredSkills++
+							if h.Items[tag] > 0 {
+								hasSkills++
+							}
+						}
+						
+						// Allow job if:
+						// 1. No requirements at all
+						// 2. Has at least 80% of required skills
+						// 3. Unemployed and very desperate (money < -10000)
+						if requiredSkills == 0 ||
+						   float64(hasSkills)/float64(requiredSkills) >= 0.8 ||
+						   (h.Job == nil && h.Money < -10000) {
+							
+							// If employed, only consider better paying jobs
+							if h.Job == nil || vacancy.Payment > h.Job.Payment {
+								possibleJobs = append(possibleJobs, vacancy)
+							}
+						}
 					}
 				}
-				
-				// Allow job if:
-				// 1. No requirements at all
-				// 2. Has at least 80% of required skills
-				// 3. Unemployed and very desperate (money < -10000)
-				if requiredSkills == 0 ||
-				   float64(hasSkills)/float64(requiredSkills) >= 0.8 ||
-				   (h.Job == nil && h.Money < -10000) {
-					
-					// If employed, only consider better paying jobs
-					if h.Job == nil || vacancy.Payment > h.Job.Payment {
-						possibleJobs = append(possibleJobs, vacancy)
-					}
-				}
+				job.Mu.RUnlock()
 			}
+			building.Mu.RUnlock()
 		}
-		job.Mu.RUnlock()
 	}
 	h.HomeLocation.Mu.RUnlock()
 
@@ -180,31 +188,38 @@ func (h *Human) checkJobMarket() {
 	var betterJobs []*Vacancy
 	currentSalary := h.Job.Payment
 
+	// Look for better jobs in workplace buildings in the same city
 	h.HomeLocation.Mu.RLock()
-	for job := range h.HomeLocation.Jobs {
-		job.Mu.RLock()
-		for vacancy, count := range job.VacantPlaces {
-			// Look for jobs with moderate pay increase (10% or more)
-			minSalaryIncrease := int(float64(currentSalary) * 1.10)
-			if count > 0 && vacancy.Payment >= minSalaryIncrease {
-				// Balanced requirements for job switching
-				requiredSkills := 0
-				hasSkills := 0
-				
-				for tag := range vacancy.RequiredTags {
-					requiredSkills++
-					if h.Items[tag] > 0 {
-						hasSkills++
+	for building := range h.HomeLocation.Buildings {
+		if building.Type == Workplace {
+			building.Mu.RLock()
+			for job := range building.Jobs {
+				job.Mu.RLock()
+				for vacancy, count := range job.VacantPlaces {
+					// Look for jobs with moderate pay increase (10% or more)
+					minSalaryIncrease := int(float64(currentSalary) * 1.10)
+					if count > 0 && vacancy.Payment >= minSalaryIncrease {
+						// Balanced requirements for job switching
+						requiredSkills := 0
+						hasSkills := 0
+						
+						for tag := range vacancy.RequiredTags {
+							requiredSkills++
+							if h.Items[tag] > 0 {
+								hasSkills++
+							}
+						}
+						
+						// Accept job if has at least 70% of required skills or no requirements
+						if requiredSkills == 0 || float64(hasSkills)/float64(requiredSkills) >= 0.7 {
+							betterJobs = append(betterJobs, vacancy)
+						}
 					}
 				}
-				
-				// Accept job if has at least 70% of required skills or no requirements
-				if requiredSkills == 0 || float64(hasSkills)/float64(requiredSkills) >= 0.7 {
-					betterJobs = append(betterJobs, vacancy)
-				}
+				job.Mu.RUnlock()
 			}
+			building.Mu.RUnlock()
 		}
-		job.Mu.RUnlock()
 	}
 	h.HomeLocation.Mu.RUnlock()
 
@@ -226,7 +241,7 @@ func (h *Human) checkJobMarket() {
 			h.Job.Parent.Mu.Lock()
 			h.Job.Parent.VacantPlaces[h.Job]++
 			h.Job.Parent.Mu.Unlock()
-			
+
 			// Take new job
 			bestJob.Parent.Mu.Lock()
 			h.Job = bestJob

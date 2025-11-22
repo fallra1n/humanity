@@ -35,61 +35,158 @@ func main() {
 		log.Fatalf("Failed to create name maps: %v", err)
 	}
 
-	// Create city and vacancies
-	city := &components.Location{
-		Jobs:   make(map[*components.Job]bool),
-		Humans: make(map[*components.Human]bool),
-		Paths:  make(map[*components.Path]bool),
-	}
+	// Create two cities
+	smallCity := components.CreateSmallCity("Greenville")
+	largeCity := components.CreateLargeCity("Metropolis")
 
-	allVacancies := components.CreateVacancies(city)
+	// Print city information
+	components.PrintCityInfo(smallCity)
+	components.PrintCityInfo(largeCity)
 
-	// Create 100 humans
+	// Create people for each city separately to ensure 90% employment in each
 	var people []*components.Human
-	for i := 0; i < 100; i++ {
-		human := components.NewHuman(make(map[*components.Human]bool), city, globalTargets)
+	
+	// Small city: 40 people, 36 employed (90%)
+	smallCityResidential := components.GetResidentialBuildings(smallCity)
+	for i := 0; i < 40; i++ {
+		human := components.NewHuman(make(map[*components.Human]bool), smallCity, globalTargets)
 		human.Money = 10000 // Starting capital
 
-		// 90% of people start with a job (unemployment rate ~7% in Russia)
-		if i < 90 { // First 90 out of 100 people get jobs
-			// Randomly assign to available vacancies
-			availableVacancies := make([]*components.Vacancy, 0)
-			for _, vacancy := range allVacancies {
-				vacancy.Parent.Mu.RLock()
-				if vacancy.Parent.VacantPlaces[vacancy] > 0 {
-					// Check if human can work (has required skills)
-					canWork := true
-					for requiredTag := range vacancy.RequiredTags {
-						if human.Items[requiredTag] <= 0 {
-							canWork = false
-							break
+		// Assign residential building
+		assigned := false
+		for _, building := range smallCityResidential {
+			if building.AddResident(human) {
+				assigned = true
+				break
+			}
+		}
+		if !assigned {
+			fmt.Printf("Warning: Could not assign residential building to small city human %d\n", i+1)
+		}
+
+		// 90% employment (first 36 out of 40 get jobs)
+		if i < 36 {
+			var availableVacancies []*components.Vacancy
+			
+			smallCity.Mu.RLock()
+			for job := range smallCity.Jobs {
+				job.Mu.RLock()
+				for vacancy, count := range job.VacantPlaces {
+					if count > 0 {
+						canWork := true
+						for requiredTag := range vacancy.RequiredTags {
+							if human.Items[requiredTag] <= 0 {
+								canWork = false
+								break
+							}
+						}
+						if canWork {
+							availableVacancies = append(availableVacancies, vacancy)
 						}
 					}
-					if canWork {
-						availableVacancies = append(availableVacancies, vacancy)
-					}
 				}
-				vacancy.Parent.Mu.RUnlock()
+				job.Mu.RUnlock()
 			}
+			smallCity.Mu.RUnlock()
 
 			if len(availableVacancies) > 0 {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
 				chosenVacancy.Parent.Mu.Lock()
 				human.Job = chosenVacancy
-				human.JobTime = uint64(utils.GlobalRandom.NextInt(2000)) // Random work experience 0-2000 hours
+				human.JobTime = uint64(utils.GlobalRandom.NextInt(2000))
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
 				chosenVacancy.Parent.Mu.Unlock()
 			}
 		}
 
 		people = append(people, human)
-		city.Mu.Lock()
-		city.Humans[human] = true
-		city.Mu.Unlock()
+		smallCity.Mu.Lock()
+		smallCity.Humans[human] = true
+		smallCity.Mu.Unlock()
 	}
 
-	fmt.Printf("\nCreated %d people, %d employed, %d unemployed\n",
-		len(people), len(people)-10, 10)
+	// Large city: 60 people, 54 employed (90%)
+	largeCityResidential := components.GetResidentialBuildings(largeCity)
+	for i := 0; i < 60; i++ {
+		human := components.NewHuman(make(map[*components.Human]bool), largeCity, globalTargets)
+		human.Money = 10000 // Starting capital
+
+		// Assign residential building
+		assigned := false
+		for _, building := range largeCityResidential {
+			if building.AddResident(human) {
+				assigned = true
+				break
+			}
+		}
+		if !assigned {
+			fmt.Printf("Warning: Could not assign residential building to large city human %d\n", i+1)
+		}
+
+		// 90% employment (first 54 out of 60 get jobs)
+		if i < 54 {
+			var availableVacancies []*components.Vacancy
+			
+			largeCity.Mu.RLock()
+			for job := range largeCity.Jobs {
+				job.Mu.RLock()
+				for vacancy, count := range job.VacantPlaces {
+					if count > 0 {
+						canWork := true
+						for requiredTag := range vacancy.RequiredTags {
+							if human.Items[requiredTag] <= 0 {
+								canWork = false
+								break
+							}
+						}
+						if canWork {
+							availableVacancies = append(availableVacancies, vacancy)
+						}
+					}
+				}
+				job.Mu.RUnlock()
+			}
+			largeCity.Mu.RUnlock()
+
+			if len(availableVacancies) > 0 {
+				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
+				chosenVacancy.Parent.Mu.Lock()
+				human.Job = chosenVacancy
+				human.JobTime = uint64(utils.GlobalRandom.NextInt(2000))
+				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
+				chosenVacancy.Parent.Mu.Unlock()
+			}
+		}
+
+		people = append(people, human)
+		largeCity.Mu.Lock()
+		largeCity.Humans[human] = true
+		largeCity.Mu.Unlock()
+	}
+
+	// Count employment statistics
+	smallCityEmployed := 0
+	largeCityEmployed := 0
+	totalEmployed := 0
+	
+	for _, person := range people {
+		if person.Job != nil {
+			totalEmployed++
+			if person.HomeLocation == smallCity {
+				smallCityEmployed++
+			} else {
+				largeCityEmployed++
+			}
+		}
+	}
+
+	fmt.Printf("\nCreated %d people total:\n", len(people))
+	fmt.Printf("  %s: 40 residents, %d employed (%.1f%%)\n",
+		smallCity.Name, smallCityEmployed, float64(smallCityEmployed)/40*100)
+	fmt.Printf("  %s: 60 residents, %d employed (%.1f%%)\n",
+		largeCity.Name, largeCityEmployed, float64(largeCityEmployed)/60*100)
+	fmt.Printf("Total employment: %d employed, %d unemployed (%.1f%% employment rate)\n",
+		totalEmployed, len(people)-totalEmployed, float64(totalEmployed)/float64(len(people))*100)
 
 	// Print initial state of all humans
 	fmt.Println("========================================")

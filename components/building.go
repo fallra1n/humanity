@@ -80,6 +80,7 @@ func (b *Building) AddResident(human *Human) bool {
 	b.Residents[human] = true
 	b.Occupied++
 	human.ResidentialBuilding = b
+	human.CurrentBuilding = b  // Start at home
 	return true
 }
 

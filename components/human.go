@@ -19,6 +19,8 @@ type Human struct {
 	Job                    *Vacancy
 	JobTime                uint64
 	HomeLocation           *Location
+	CurrentBuilding        *Building  // Where the person currently is
+	WorkBuilding           *Building  // Where the person works (can be nil if unemployed)
 	ResidentialBuilding    *Building
 	Parents                map[*Human]float64
 	Family                 map[*Human]float64
@@ -52,6 +54,8 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 		Job:                    nil,
 		JobTime:                720,
 		HomeLocation:           homeLocation,
+		CurrentBuilding:        nil,           // Will be set when assigned to residential building
+		WorkBuilding:           nil,           // Will be set when getting a job
 		Parents:                make(map[*Human]float64),
 		Family:                 make(map[*Human]float64),
 		Children:               make(map[*Human]float64),
@@ -121,22 +125,22 @@ func (h *Human) findJob() {
 						// Balanced job requirements
 						requiredSkills := 0
 						hasSkills := 0
-						
+
 						for tag := range vacancy.RequiredTags {
 							requiredSkills++
 							if h.Items[tag] > 0 {
 								hasSkills++
 							}
 						}
-						
+
 						// Allow job if:
 						// 1. No requirements at all
 						// 2. Has at least 80% of required skills
 						// 3. Unemployed and very desperate (money < -10000)
 						if requiredSkills == 0 ||
-						   float64(hasSkills)/float64(requiredSkills) >= 0.8 ||
-						   (h.Job == nil && h.Money < -10000) {
-							
+							float64(hasSkills)/float64(requiredSkills) >= 0.8 ||
+							(h.Job == nil && h.Money < -10000) {
+
 							// If employed, only consider better paying jobs
 							if h.Job == nil || vacancy.Payment > h.Job.Payment {
 								possibleJobs = append(possibleJobs, vacancy)
@@ -166,6 +170,8 @@ func (h *Human) findJob() {
 		h.Job = chosen
 		chosen.Parent.VacantPlaces[chosen]--
 		h.JobTime = 0
+		// Set work building to the building where the job is
+		h.WorkBuilding = chosen.Parent.Building
 		chosen.Parent.Mu.Unlock()
 	}
 }
@@ -203,14 +209,14 @@ func (h *Human) checkJobMarket() {
 						// Balanced requirements for job switching
 						requiredSkills := 0
 						hasSkills := 0
-						
+
 						for tag := range vacancy.RequiredTags {
 							requiredSkills++
 							if h.Items[tag] > 0 {
 								hasSkills++
 							}
 						}
-						
+
 						// Accept job if has at least 70% of required skills or no requirements
 						if requiredSkills == 0 || float64(hasSkills)/float64(requiredSkills) >= 0.7 {
 							betterJobs = append(betterJobs, vacancy)
@@ -403,6 +409,9 @@ func (h *Human) IterateHour() {
 	// Check job market for better opportunities
 	h.checkJobMarket()
 
+	// Handle movement between buildings
+	h.handleMovement()
+
 	// Main activity logic - check if it's sleep time
 	if utils.IsSleepTime(utils.GlobalTick.Get()) {
 		// During sleep hours (23:00 to 07:00), humans don't perform actions
@@ -414,6 +423,116 @@ func (h *Human) IterateHour() {
 		h.BusyHours--
 	} else {
 		h.performActions()
+	}
+}
+
+// handleMovement manages movement between buildings based on time of day
+func (h *Human) handleMovement() {
+	currentHour := utils.GetHourOfDay(utils.GlobalTick.Get())
+	
+	// Go to work during work hours (9:00-17:59) if employed and it's a work day
+	if currentHour >= 9 && currentHour < 18 && h.Job != nil && h.WorkBuilding != nil && utils.IsWorkDay(utils.GlobalTick.Get()) {
+		if h.CurrentBuilding != h.WorkBuilding {
+			h.CurrentBuilding = h.WorkBuilding
+		}
+	}
+	
+	// Go home after work (18:00+) or during non-work hours
+	if (currentHour >= 18 || currentHour < 9 || !utils.IsWorkDay(utils.GlobalTick.Get())) && h.ResidentialBuilding != nil {
+		if h.CurrentBuilding != h.ResidentialBuilding {
+			h.CurrentBuilding = h.ResidentialBuilding
+		}
+	}
+	
+	// Stay home during sleep hours (23:00-07:00)
+	if utils.IsSleepTime(utils.GlobalTick.Get()) && h.ResidentialBuilding != nil {
+		if h.CurrentBuilding != h.ResidentialBuilding {
+			h.CurrentBuilding = h.ResidentialBuilding
+		}
+	}
+}
+
+// findPotentialFriends finds other humans in the same building who could become friends
+func (h *Human) findPotentialFriends() []*Human {
+	var potentialFriends []*Human
+	
+	if h.CurrentBuilding == nil {
+		return potentialFriends
+	}
+	
+	// Look for people in the same building who are not already connected
+	h.CurrentBuilding.Mu.RLock()
+	for otherHuman := range h.CurrentBuilding.Residents {
+		if otherHuman != h && !otherHuman.Dead {
+			// Check if not already connected
+			if _, isFamily := h.Family[otherHuman]; !isFamily {
+				if _, isParent := h.Parents[otherHuman]; !isParent {
+					if _, isChild := h.Children[otherHuman]; !isChild {
+						if _, isFriend := h.Friends[otherHuman]; !isFriend {
+							potentialFriends = append(potentialFriends, otherHuman)
+						}
+					}
+				}
+			}
+		}
+	}
+	h.CurrentBuilding.Mu.RUnlock()
+	
+	// Also look for people in workplace if at work
+	if h.CurrentBuilding == h.WorkBuilding && h.WorkBuilding != nil {
+		// Find other people who work in the same building
+		h.HomeLocation.Mu.RLock()
+		for otherHuman := range h.HomeLocation.Humans {
+			if otherHuman != h && !otherHuman.Dead && otherHuman.WorkBuilding == h.WorkBuilding {
+				// Check if not already connected and not already in potential friends
+				if _, isFamily := h.Family[otherHuman]; !isFamily {
+					if _, isParent := h.Parents[otherHuman]; !isParent {
+						if _, isChild := h.Children[otherHuman]; !isChild {
+							if _, isFriend := h.Friends[otherHuman]; !isFriend {
+								// Check if not already in the list
+								alreadyAdded := false
+								for _, existing := range potentialFriends {
+									if existing == otherHuman {
+										alreadyAdded = true
+										break
+									}
+								}
+								if !alreadyAdded {
+									potentialFriends = append(potentialFriends, otherHuman)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		h.HomeLocation.Mu.RUnlock()
+	}
+	
+	return potentialFriends
+}
+
+// meetNewPerson creates a new friendship connection
+func (h *Human) meetNewPerson() {
+	potentialFriends := h.findPotentialFriends()
+	
+	if len(potentialFriends) > 0 {
+		// Choose a random person to meet
+		newFriend := potentialFriends[utils.GlobalRandom.NextInt(len(potentialFriends))]
+		
+		// Create mutual friendship with initial relationship strength
+		initialStrength := 0.1 + utils.GlobalRandom.NextFloat()*0.2 // 0.1 to 0.3
+		
+		h.Friends[newFriend] = initialStrength
+		newFriend.Friends[h] = initialStrength
+		
+		// Add a positive splash about meeting someone new
+		splash := NewSplash("new_friendship", []string{"socialization", "friendship", "well-being"}, 24)
+		h.Splashes = append(h.Splashes, splash)
+		
+		// Also add splash to the new friend
+		friendSplash := NewSplash("new_friendship", []string{"socialization", "friendship", "well-being"}, 24)
+		newFriend.Splashes = append(newFriend.Splashes, friendSplash)
 	}
 }
 
@@ -587,9 +706,17 @@ func (h *Human) PrintFinalInfo(id int) {
 		fmt.Printf("Items: %s\n", h.getItemsString())
 	}
 
-	if len(h.Family) > 0 || len(h.Children) > 0 {
-		fmt.Printf("Family: %d family members, %d children\n",
-			len(h.Family), len(h.Children))
+	if len(h.Family) > 0 || len(h.Children) > 0 || len(h.Friends) > 0 {
+		fmt.Printf("Relationships: %d family members, %d children, %d friends\n",
+			len(h.Family), len(h.Children), len(h.Friends))
+	}
+
+	// Show current location and work info
+	fmt.Printf("Current Location: %s\n", h.getCurrentLocationString())
+	if h.WorkBuilding != nil {
+		fmt.Printf("Work Location: %s\n", h.WorkBuilding.Name)
+	} else {
+		fmt.Printf("Work Location: Unemployed\n")
 	}
 
 	fmt.Println()
@@ -657,4 +784,13 @@ func getKeysFromMap(m map[string]bool) []string {
 		keys = append(keys, key)
 	}
 	return keys
+}
+
+
+// getCurrentLocationString returns a string representation of current location
+func (h *Human) getCurrentLocationString() string {
+	if h.CurrentBuilding == nil {
+		return "Unknown"
+	}
+	return h.CurrentBuilding.Name
 }

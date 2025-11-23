@@ -160,3 +160,18 @@ func IsSleepTime(currentHour uint64) bool {
 func GetHourOfDay(globalHour uint64) uint64 {
 	return globalHour % 24
 }
+
+// IsWorkTime checks if the current hour is within work time (09:00 to 18:00)
+func IsWorkTime(currentHour uint64) bool {
+	hourOfDay := currentHour % 24
+	// Work from 09:00 to 18:00
+	return hourOfDay >= 9 && hourOfDay < 18
+}
+
+// IsWorkDay checks if it's a work day (Monday to Friday)
+func IsWorkDay(currentHour uint64) bool {
+	// Assuming simulation starts on Monday (day 0)
+	dayOfWeek := (currentHour / 24) % 7
+	// Monday=0, Tuesday=1, ..., Friday=4, Saturday=5, Sunday=6
+	return dayOfWeek < 5
+}

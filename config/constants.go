@@ -166,3 +166,11 @@ const (
 	SleepEndHour = 7     // 07:00
 	SleepDuration = 8    // hours of sleep
 )
+
+// Work Schedule Constants
+const (
+	// Work hours (09:00 to 18:00)
+	WorkStartHour = 9   // 09:00
+	WorkEndHour = 18    // 18:00
+	WorkDuration = 9    // hours of work
+)

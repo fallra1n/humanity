@@ -96,6 +96,7 @@ func main() {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
 				human.Job = chosenVacancy
 				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
+				human.WorkBuilding = chosenVacancy.Parent.Building  // Set work building
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
 			}
 		}
@@ -153,6 +154,7 @@ func main() {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
 				human.Job = chosenVacancy
 				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
+				human.WorkBuilding = chosenVacancy.Parent.Building  // Set work building
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
 			}
 		}
@@ -285,6 +287,47 @@ func main() {
 	fmt.Printf("Total Money in Economy: %d rubles\n", totalMoney)
 	fmt.Printf("Average Money per Person: %d rubles\n", totalMoney/int64(len(people)))
 	fmt.Printf("Total Items Acquired: %d\n", totalItems)
+
+	// New functionality statistics
+	totalFriends := 0
+	peopleWithFriends := 0
+	peopleAtWork := 0
+	peopleAtHome := 0
+	
+	for _, person := range people {
+		if !person.Dead {
+			totalFriends += len(person.Friends)
+			if len(person.Friends) > 0 {
+				peopleWithFriends++
+			}
+			
+			// Count current locations
+			if person.CurrentBuilding != nil {
+				if person.CurrentBuilding == person.WorkBuilding {
+					peopleAtWork++
+				} else if person.CurrentBuilding == person.ResidentialBuilding {
+					peopleAtHome++
+				}
+			}
+		}
+	}
+	
+	fmt.Printf("\n=== NEW FEATURES STATISTICS ===\n")
+	fmt.Printf("Social Connections:\n")
+	fmt.Printf("  Total Friendships: %d\n", totalFriends)
+	fmt.Printf("  People with Friends: %d/%d (%.1f%%)\n",
+		peopleWithFriends, aliveCount, float64(peopleWithFriends)/float64(aliveCount)*100)
+	fmt.Printf("  Average Friends per Person: %.1f\n",
+		float64(totalFriends)/float64(aliveCount))
+	
+	fmt.Printf("Location Distribution:\n")
+	fmt.Printf("  People at Work: %d (%.1f%%)\n",
+		peopleAtWork, float64(peopleAtWork)/float64(aliveCount)*100)
+	fmt.Printf("  People at Home: %d (%.1f%%)\n",
+		peopleAtHome, float64(peopleAtHome)/float64(aliveCount)*100)
+	fmt.Printf("  Other Locations: %d (%.1f%%)\n",
+		aliveCount-peopleAtWork-peopleAtHome,
+		float64(aliveCount-peopleAtWork-peopleAtHome)/float64(aliveCount)*100)
 
 	// Target completion statistics
 	fmt.Println("\nTarget Completion Statistics:")

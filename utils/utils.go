@@ -149,3 +149,14 @@ func LoadSequencesFromFile(filename string) ([][]string, error) {
 	return result, nil
 }
 
+// IsSleepTime checks if the current hour is within sleep time (23:00 to 07:00)
+func IsSleepTime(currentHour uint64) bool {
+	hourOfDay := currentHour % 24
+	// Sleep from 23:00 to 07:00
+	return hourOfDay >= 23 || hourOfDay < 7
+}
+
+// GetHourOfDay returns the hour of day (0-23) from global time
+func GetHourOfDay(globalHour uint64) uint64 {
+	return globalHour % 24
+}

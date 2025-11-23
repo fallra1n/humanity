@@ -403,7 +403,13 @@ func (h *Human) IterateHour() {
 	// Check job market for better opportunities
 	h.checkJobMarket()
 
-	// Main activity logic
+	// Main activity logic - check if it's sleep time
+	if utils.IsSleepTime(utils.GlobalTick.Get()) {
+		// During sleep hours (23:00 to 07:00), humans don't perform actions
+		// They just rest and recover
+		return
+	}
+
 	if h.BusyHours > 0 {
 		h.BusyHours--
 	} else {

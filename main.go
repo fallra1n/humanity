@@ -69,7 +69,7 @@ func main() {
 		// Employment based on config rate
 		if i < smallCityEmployed {
 			var availableVacancies []*components.Vacancy
-			
+
 			// Look for jobs in workplace buildings
 			for building := range smallCity.Buildings {
 				if building.Type == components.Workplace {
@@ -126,7 +126,7 @@ func main() {
 		// Employment based on config rate
 		if i < largeCityEmployed {
 			var availableVacancies []*components.Vacancy
-			
+
 			// Look for jobs in workplace buildings
 			for building := range largeCity.Buildings {
 				if building.Type == components.Workplace {

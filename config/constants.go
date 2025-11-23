@@ -158,3 +158,11 @@ const (
 	JobLossLifetime = 72
 	CareerAdvancementLifetime = 48
 )
+
+// Sleep Schedule Constants
+const (
+	// Sleep hours (23:00 to 07:00)
+	SleepStartHour = 23  // 23:00
+	SleepEndHour = 7     // 07:00
+	SleepDuration = 8    // hours of sleep
+)

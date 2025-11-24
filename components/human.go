@@ -14,6 +14,8 @@ import (
 type Human struct {
 	Age                    float64
 	Gender                 Gender
+	MaritalStatus          MaritalStatus
+	Spouse                 *Human // Reference to spouse if married
 	Dead                   bool
 	BusyHours              uint64
 	Money                  int64
@@ -52,6 +54,8 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 	human := &Human{
 		Age:                    age,
 		Gender:                 gender,
+		MaritalStatus:          Single, // Start as single
+		Spouse:                 nil,    // No spouse initially
 		Dead:                   false,
 		BusyHours:              0,
 		Money:                  7000,
@@ -458,6 +462,86 @@ func (h *Human) handleMovement() {
 	}
 }
 
+// MarryWith creates a marriage between two humans
+func (h *Human) MarryWith(other *Human) {
+	if h.MaritalStatus == Married || other.MaritalStatus == Married {
+		return // One of them is already married
+	}
+
+	if h == other {
+		return // Can't marry yourself
+	}
+
+	// Create bidirectional marriage
+	h.MaritalStatus = Married
+	h.Spouse = other
+	other.MaritalStatus = Married
+	other.Spouse = h
+
+	// Add to family relationships if not already there
+	if _, exists := h.Family[other]; !exists {
+		h.Family[other] = 0.0
+	}
+	if _, exists := other.Family[h]; !exists {
+		other.Family[h] = 0.0
+	}
+}
+
+// Divorce ends the marriage between two humans
+func (h *Human) Divorce() {
+	if h.MaritalStatus != Married || h.Spouse == nil {
+		return // Not married
+	}
+
+	spouse := h.Spouse
+
+	// End bidirectional marriage
+	h.MaritalStatus = Single
+	h.Spouse = nil
+	spouse.MaritalStatus = Single
+	spouse.Spouse = nil
+}
+
+// IsCompatibleWith checks if two humans are compatible for marriage
+func (h *Human) IsCompatibleWith(other *Human) bool {
+	// Check if both are single
+	if h.MaritalStatus != Single || other.MaritalStatus != Single {
+		return false
+	}
+	
+	// Check if genders are opposite
+	if h.Gender == other.Gender {
+		return false
+	}
+	
+	// Check age difference (max 10 years)
+	ageDiff := h.Age - other.Age
+	if ageDiff < 0 {
+		ageDiff = -ageDiff
+	}
+	if ageDiff > 10.0 {
+		return false
+	}
+	
+	// Check if they know each other for at least 6 months (0.5 years)
+	friendship, exists := h.Friends[other]
+	if !exists || friendship < 0.5 {
+		return false
+	}
+	
+	// Check if they have at least 3 common global target types
+	commonTargets := 0
+	for hTarget := range h.GlobalTargets {
+		for otherTarget := range other.GlobalTargets {
+			if hTarget.Name == otherTarget.Name {
+				commonTargets++
+				break
+			}
+		}
+	}
+	
+	return commonTargets >= 3
+}
 
 // redistributeWealth distributes money to family when dying
 func (h *Human) redistributeWealth() {

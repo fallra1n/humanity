@@ -15,36 +15,72 @@ import (
 func processFriendships(people []*components.Human) {
 	// Group people by their current building
 	buildingGroups := make(map[*components.Building][]*components.Human)
-	
+
 	for _, person := range people {
 		if person.Dead || person.CurrentBuilding == nil {
 			continue
 		}
 		buildingGroups[person.CurrentBuilding] = append(buildingGroups[person.CurrentBuilding], person)
 	}
-	
+
 	// Process friendships within each building
 	for _, group := range buildingGroups {
 		if len(group) < 2 {
 			continue // Need at least 2 people to form friendships
 		}
-		
+
 		// Check all pairs of people in the building
 		for i := 0; i < len(group); i++ {
 			for j := i + 1; j < len(group); j++ {
 				person1 := group[i]
 				person2 := group[j]
-				
+
 				// Skip if already friends
 				if _, alreadyFriends := person1.Friends[person2]; alreadyFriends {
 					continue
 				}
-				
+
 				// 25% chance to become friends
 				if utils.GlobalRandom.NextFloat() < 0.25 {
 					// Make bidirectional friendship
-					person1.Friends[person2] = 0.0  // Start with 0 relationship strength
+					person1.Friends[person2] = 0.0 // Start with 0 relationship strength
 					person2.Friends[person1] = 0.0
+				}
+			}
+		}
+	}
+}
+
+// processMarriages handles marriage formation between compatible people
+func processMarriages(people []*components.Human) {
+	// Group single people by their current building
+	buildingGroups := make(map[*components.Building][]*components.Human)
+
+	for _, person := range people {
+		if person.Dead || person.CurrentBuilding == nil || person.MaritalStatus != components.Single {
+			continue
+		}
+		buildingGroups[person.CurrentBuilding] = append(buildingGroups[person.CurrentBuilding], person)
+	}
+
+	// Process potential marriages within each building
+	for _, group := range buildingGroups {
+		if len(group) < 2 {
+			continue // Need at least 2 people to form marriages
+		}
+
+		// Check all pairs of people in the building
+		for i := 0; i < len(group); i++ {
+			for j := i + 1; j < len(group); j++ {
+				person1 := group[i]
+				person2 := group[j]
+
+				// Check compatibility
+				if person1.IsCompatibleWith(person2) {
+					// Small chance to get married (5% per hour when compatible)
+					if utils.GlobalRandom.NextFloat() < 0.05 {
+						person1.MarryWith(person2)
+					}
 				}
 			}
 		}
@@ -136,7 +172,7 @@ func main() {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
 				human.Job = chosenVacancy
 				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
-				human.WorkBuilding = chosenVacancy.Parent.Building  // Set work building
+				human.WorkBuilding = chosenVacancy.Parent.Building // Set work building
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
 			}
 		}
@@ -194,7 +230,7 @@ func main() {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
 				human.Job = chosenVacancy
 				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
-				human.WorkBuilding = chosenVacancy.Parent.Building  // Set work building
+				human.WorkBuilding = chosenVacancy.Parent.Building // Set work building
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
 			}
 		}
@@ -264,6 +300,7 @@ func main() {
 		// Only during non-sleep hours
 		if !utils.IsSleepTime(utils.GlobalTick.Get()) {
 			processFriendships(people)
+			processMarriages(people)
 		}
 
 		// Process potential layoffs after all humans have acted
@@ -303,6 +340,7 @@ func main() {
 	totalItems := 0
 	maleCount := 0
 	femaleCount := 0
+	marriedCount := 0
 
 	for _, person := range people {
 		if !person.Dead {
@@ -316,6 +354,9 @@ func main() {
 		} else {
 			femaleCount++
 		}
+		if person.MaritalStatus == components.Married {
+			marriedCount++
+		}
 		completedTargetsCount += len(person.CompletedGlobalTargets)
 		totalMoney += person.Money
 		totalItems += len(person.Items)
@@ -327,6 +368,8 @@ func main() {
 		aliveCount, len(people), float64(aliveCount)/float64(len(people))*100)
 	fmt.Printf("Employment Rate: %d/%d humans employed (%.1f%%)\n",
 		employedCount, aliveCount, float64(employedCount)/float64(aliveCount)*100)
+	fmt.Printf("Marriage Rate: %d/%d humans married (%.1f%%)\n",
+		marriedCount, aliveCount, float64(marriedCount)/float64(aliveCount)*100)
 	fmt.Printf("Total Completed Global Targets: %d\n", completedTargetsCount)
 	fmt.Printf("Average Completed Targets per Person: %.1f\n",
 		float64(completedTargetsCount)/float64(len(people)))
@@ -339,14 +382,14 @@ func main() {
 	peopleWithFriends := 0
 	peopleAtWork := 0
 	peopleAtHome := 0
-	
+
 	for _, person := range people {
 		if !person.Dead {
 			totalFriends += len(person.Friends)
 			if len(person.Friends) > 0 {
 				peopleWithFriends++
 			}
-			
+
 			// Count current locations
 			if person.CurrentBuilding != nil {
 				if person.CurrentBuilding == person.WorkBuilding {
@@ -357,7 +400,7 @@ func main() {
 			}
 		}
 	}
-	
+
 	fmt.Printf("\n=== NEW FEATURES STATISTICS ===\n")
 	fmt.Printf("Social Connections:\n")
 	fmt.Printf("  Total Friendships: %d\n", totalFriends)
@@ -365,7 +408,7 @@ func main() {
 		peopleWithFriends, aliveCount, float64(peopleWithFriends)/float64(aliveCount)*100)
 	fmt.Printf("  Average Friends per Person: %.1f\n",
 		float64(totalFriends)/float64(aliveCount))
-	
+
 	fmt.Printf("Location Distribution:\n")
 	fmt.Printf("  People at Work: %d (%.1f%%)\n",
 		peopleAtWork, float64(peopleAtWork)/float64(aliveCount)*100)

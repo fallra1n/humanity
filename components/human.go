@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 
 	"github.com/fallra1n/humanity/config"
 	"github.com/fallra1n/humanity/utils"
@@ -19,8 +20,8 @@ type Human struct {
 	Job                    *Vacancy
 	JobTime                uint64
 	HomeLocation           *Location
-	CurrentBuilding        *Building  // Where the person currently is
-	WorkBuilding           *Building  // Where the person works (can be nil if unemployed)
+	CurrentBuilding        *Building // Where the person currently is
+	WorkBuilding           *Building // Where the person works (can be nil if unemployed)
 	ResidentialBuilding    *Building
 	Parents                map[*Human]float64
 	Family                 map[*Human]float64
@@ -30,6 +31,9 @@ type Human struct {
 	GlobalTargets          map[*GlobalTarget]bool
 	CompletedGlobalTargets map[*GlobalTarget]bool
 	Items                  map[string]int64
+
+	// Mutex for thread-safe access to relationships
+	Mu sync.RWMutex
 }
 
 // NewHuman creates a new human
@@ -54,8 +58,8 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 		Job:                    nil,
 		JobTime:                720,
 		HomeLocation:           homeLocation,
-		CurrentBuilding:        nil,           // Will be set when assigned to residential building
-		WorkBuilding:           nil,           // Will be set when getting a job
+		CurrentBuilding:        nil, // Will be set when assigned to residential building
+		WorkBuilding:           nil, // Will be set when getting a job
 		Parents:                make(map[*Human]float64),
 		Family:                 make(map[*Human]float64),
 		Children:               make(map[*Human]float64),
@@ -412,6 +416,8 @@ func (h *Human) IterateHour() {
 	// Handle movement between buildings
 	h.handleMovement()
 
+	// Friendship processing moved to main.go for thread safety
+
 	// Main activity logic - check if it's sleep time
 	if utils.IsSleepTime(utils.GlobalTick.Get()) {
 		// During sleep hours (23:00 to 07:00), humans don't perform actions
@@ -429,21 +435,21 @@ func (h *Human) IterateHour() {
 // handleMovement manages movement between buildings based on time of day
 func (h *Human) handleMovement() {
 	currentHour := utils.GetHourOfDay(utils.GlobalTick.Get())
-	
+
 	// Go to work during work hours (9:00-17:59) if employed and it's a work day
 	if currentHour >= 9 && currentHour < 18 && h.Job != nil && h.WorkBuilding != nil && utils.IsWorkDay(utils.GlobalTick.Get()) {
 		if h.CurrentBuilding != h.WorkBuilding {
 			h.CurrentBuilding = h.WorkBuilding
 		}
 	}
-	
+
 	// Go home after work (18:00+) or during non-work hours
 	if (currentHour >= 18 || currentHour < 9 || !utils.IsWorkDay(utils.GlobalTick.Get())) && h.ResidentialBuilding != nil {
 		if h.CurrentBuilding != h.ResidentialBuilding {
 			h.CurrentBuilding = h.ResidentialBuilding
 		}
 	}
-	
+
 	// Stay home during sleep hours (23:00-07:00)
 	if utils.IsSleepTime(utils.GlobalTick.Get()) && h.ResidentialBuilding != nil {
 		if h.CurrentBuilding != h.ResidentialBuilding {
@@ -452,89 +458,6 @@ func (h *Human) handleMovement() {
 	}
 }
 
-// findPotentialFriends finds other humans in the same building who could become friends
-func (h *Human) findPotentialFriends() []*Human {
-	var potentialFriends []*Human
-	
-	if h.CurrentBuilding == nil {
-		return potentialFriends
-	}
-	
-	// Look for people in the same building who are not already connected
-	h.CurrentBuilding.Mu.RLock()
-	for otherHuman := range h.CurrentBuilding.Residents {
-		if otherHuman != h && !otherHuman.Dead {
-			// Check if not already connected
-			if _, isFamily := h.Family[otherHuman]; !isFamily {
-				if _, isParent := h.Parents[otherHuman]; !isParent {
-					if _, isChild := h.Children[otherHuman]; !isChild {
-						if _, isFriend := h.Friends[otherHuman]; !isFriend {
-							potentialFriends = append(potentialFriends, otherHuman)
-						}
-					}
-				}
-			}
-		}
-	}
-	h.CurrentBuilding.Mu.RUnlock()
-	
-	// Also look for people in workplace if at work
-	if h.CurrentBuilding == h.WorkBuilding && h.WorkBuilding != nil {
-		// Find other people who work in the same building
-		h.HomeLocation.Mu.RLock()
-		for otherHuman := range h.HomeLocation.Humans {
-			if otherHuman != h && !otherHuman.Dead && otherHuman.WorkBuilding == h.WorkBuilding {
-				// Check if not already connected and not already in potential friends
-				if _, isFamily := h.Family[otherHuman]; !isFamily {
-					if _, isParent := h.Parents[otherHuman]; !isParent {
-						if _, isChild := h.Children[otherHuman]; !isChild {
-							if _, isFriend := h.Friends[otherHuman]; !isFriend {
-								// Check if not already in the list
-								alreadyAdded := false
-								for _, existing := range potentialFriends {
-									if existing == otherHuman {
-										alreadyAdded = true
-										break
-									}
-								}
-								if !alreadyAdded {
-									potentialFriends = append(potentialFriends, otherHuman)
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		h.HomeLocation.Mu.RUnlock()
-	}
-	
-	return potentialFriends
-}
-
-// meetNewPerson creates a new friendship connection
-func (h *Human) meetNewPerson() {
-	potentialFriends := h.findPotentialFriends()
-	
-	if len(potentialFriends) > 0 {
-		// Choose a random person to meet
-		newFriend := potentialFriends[utils.GlobalRandom.NextInt(len(potentialFriends))]
-		
-		// Create mutual friendship with initial relationship strength
-		initialStrength := 0.1 + utils.GlobalRandom.NextFloat()*0.2 // 0.1 to 0.3
-		
-		h.Friends[newFriend] = initialStrength
-		newFriend.Friends[h] = initialStrength
-		
-		// Add a positive splash about meeting someone new
-		splash := NewSplash("new_friendship", []string{"socialization", "friendship", "well-being"}, 24)
-		h.Splashes = append(h.Splashes, splash)
-		
-		// Also add splash to the new friend
-		friendSplash := NewSplash("new_friendship", []string{"socialization", "friendship", "well-being"}, 24)
-		newFriend.Splashes = append(newFriend.Splashes, friendSplash)
-	}
-}
 
 // redistributeWealth distributes money to family when dying
 func (h *Human) redistributeWealth() {
@@ -785,7 +708,6 @@ func getKeysFromMap(m map[string]bool) []string {
 	}
 	return keys
 }
-
 
 // getCurrentLocationString returns a string representation of current location
 func (h *Human) getCurrentLocationString() string {

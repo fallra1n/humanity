@@ -11,6 +11,46 @@ import (
 	"github.com/fallra1n/humanity/utils"
 )
 
+// processFriendships handles friendship formation between people in the same building
+func processFriendships(people []*components.Human) {
+	// Group people by their current building
+	buildingGroups := make(map[*components.Building][]*components.Human)
+	
+	for _, person := range people {
+		if person.Dead || person.CurrentBuilding == nil {
+			continue
+		}
+		buildingGroups[person.CurrentBuilding] = append(buildingGroups[person.CurrentBuilding], person)
+	}
+	
+	// Process friendships within each building
+	for _, group := range buildingGroups {
+		if len(group) < 2 {
+			continue // Need at least 2 people to form friendships
+		}
+		
+		// Check all pairs of people in the building
+		for i := 0; i < len(group); i++ {
+			for j := i + 1; j < len(group); j++ {
+				person1 := group[i]
+				person2 := group[j]
+				
+				// Skip if already friends
+				if _, alreadyFriends := person1.Friends[person2]; alreadyFriends {
+					continue
+				}
+				
+				// 25% chance to become friends
+				if utils.GlobalRandom.NextFloat() < 0.25 {
+					// Make bidirectional friendship
+					person1.Friends[person2] = 0.0  // Start with 0 relationship strength
+					person2.Friends[person1] = 0.0
+				}
+			}
+		}
+	}
+}
+
 func main() {
 	// Load actions
 	actions, err := LoadActions("actions.ini")
@@ -219,6 +259,12 @@ func main() {
 		}
 
 		wg.Wait()
+
+		// Process friendships after all humans have acted (single-threaded for safety)
+		// Only during non-sleep hours
+		if !utils.IsSleepTime(utils.GlobalTick.Get()) {
+			processFriendships(people)
+		}
 
 		// Process potential layoffs after all humans have acted
 		for _, person := range people {

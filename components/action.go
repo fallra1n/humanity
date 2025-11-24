@@ -132,11 +132,6 @@ func (a *Action) Apply(person *Human) {
 	if a.Name == "find_job" {
 		person.findJob()
 	}
-	
-	// Special case: meeting new people
-	if a.Name == "meet_new_person" {
-		person.meetNewPerson()
-	}
 }
 
 // String method for Action

@@ -1,8 +1,8 @@
 package components
 
 import (
-	"sync"
 	"github.com/fallra1n/humanity/utils"
+	"sync"
 )
 
 // Vacancy represents a job opening

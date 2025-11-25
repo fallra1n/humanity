@@ -1,8 +1,8 @@
 package components
 
 import (
-	"sync"
 	"github.com/fallra1n/humanity/utils"
+	"sync"
 )
 
 // GlobalTarget represents a long-term goal
@@ -50,7 +50,7 @@ func (gt *GlobalTarget) MarkAsExecuted(target *LocalTarget) {
 func (gt *GlobalTarget) IsExecutedFull() bool {
 	gt.Mu.RLock()
 	defer gt.Mu.RUnlock()
-	
+
 	remainingTags := make(map[string]bool)
 	for tag := range gt.Tags {
 		remainingTags[tag] = true
@@ -69,7 +69,7 @@ func (gt *GlobalTarget) IsExecutedFull() bool {
 func (gt *GlobalTarget) Executable(person *Human) bool {
 	gt.Mu.RLock()
 	defer gt.Mu.RUnlock()
-	
+
 	unclosedTags := make(map[string]bool)
 	for tag := range gt.Tags {
 		unclosedTags[tag] = true
@@ -98,7 +98,7 @@ func (gt *GlobalTarget) Executable(person *Human) bool {
 func (gt *GlobalTarget) ChooseTarget(person *Human) *LocalTarget {
 	gt.Mu.RLock()
 	defer gt.Mu.RUnlock()
-	
+
 	leftTags := make(map[string]bool)
 	for tag := range gt.Tags {
 		leftTags[tag] = true

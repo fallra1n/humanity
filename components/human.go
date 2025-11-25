@@ -15,17 +15,17 @@ type Human struct {
 	Age                    float64
 	Gender                 Gender
 	MaritalStatus          MaritalStatus
-	Spouse                 *Human    // Reference to spouse if married
-	IsPregnant             bool      // True if currently pregnant
-	PregnancyTime          uint64    // Hours since pregnancy started
+	Spouse                 *Human // Reference to spouse if married
+	IsPregnant             bool   // True if currently pregnant
+	PregnancyTime          uint64 // Hours since pregnancy started
 	Dead                   bool
 	BusyHours              uint64
 	Money                  int64
 	Job                    *Vacancy
 	JobTime                uint64
 	HomeLocation           *Location
-	CurrentBuilding        *Building  // Where the person currently is
-	WorkBuilding           *Building  // Where the person works (can be nil if unemployed)
+	CurrentBuilding        *Building // Where the person currently is
+	WorkBuilding           *Building // Where the person works (can be nil if unemployed)
 	ResidentialBuilding    *Building
 	Parents                map[*Human]float64
 	Family                 map[*Human]float64
@@ -35,9 +35,9 @@ type Human struct {
 	GlobalTargets          map[*GlobalTarget]bool
 	CompletedGlobalTargets map[*GlobalTarget]bool
 	Items                  map[string]int64
-	
+
 	// Mutex for thread-safe access to relationships
-	Mu                     sync.RWMutex
+	Mu sync.RWMutex
 }
 
 // NewHuman creates a new human
@@ -56,18 +56,18 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 	human := &Human{
 		Age:                    age,
 		Gender:                 gender,
-		MaritalStatus:          Single,        // Start as single
-		Spouse:                 nil,           // No spouse initially
-		IsPregnant:             false,         // Not pregnant initially
-		PregnancyTime:          0,             // No pregnancy time
+		MaritalStatus:          Single, // Start as single
+		Spouse:                 nil,    // No spouse initially
+		IsPregnant:             false,  // Not pregnant initially
+		PregnancyTime:          0,      // No pregnancy time
 		Dead:                   false,
 		BusyHours:              0,
 		Money:                  7000,
 		Job:                    nil,
 		JobTime:                720,
 		HomeLocation:           homeLocation,
-		CurrentBuilding:        nil,           // Will be set when assigned to residential building
-		WorkBuilding:           nil,           // Will be set when getting a job
+		CurrentBuilding:        nil, // Will be set when assigned to residential building
+		WorkBuilding:           nil, // Will be set when getting a job
 		Parents:                make(map[*Human]float64),
 		Family:                 make(map[*Human]float64),
 		Children:               make(map[*Human]float64),
@@ -406,10 +406,10 @@ func (h *Human) IterateHour() {
 	// Daily expenses
 	if utils.GlobalTick.Get()%24 == 0 {
 		dailyExpenses := int64(config.DailyExpenses)
-		
+
 		// Additional expenses for children
 		dailyExpenses += int64(len(h.Children)) * config.ChildExpensesPerDay
-		
+
 		h.Money -= dailyExpenses
 
 		// Monthly salary
@@ -417,12 +417,12 @@ func (h *Human) IterateHour() {
 			h.Money += int64(h.Job.Payment)
 		}
 	}
-	
+
 	// Process pregnancy and child planning (only for women)
 	if h.Gender == Female {
 		// Try to plan child every hour
 		h.PlanChild()
-		
+
 		// Process ongoing pregnancy
 		// Note: ProcessPregnancy returns a new child if birth occurs
 		// This will be handled in main.go to add the child to the people slice
@@ -527,12 +527,12 @@ func (h *Human) IsCompatibleWith(other *Human) bool {
 	if h.MaritalStatus != Single || other.MaritalStatus != Single {
 		return false
 	}
-	
+
 	// Check if genders are opposite
 	if h.Gender == other.Gender {
 		return false
 	}
-	
+
 	// Check age difference (max 10 years)
 	ageDiff := h.Age - other.Age
 	if ageDiff < 0 {
@@ -541,13 +541,13 @@ func (h *Human) IsCompatibleWith(other *Human) bool {
 	if ageDiff > 10.0 {
 		return false
 	}
-	
+
 	// Check if they know each other for at least 6 months (0.5 years)
 	friendship, exists := h.Friends[other]
 	if !exists || friendship < 0.5 {
 		return false
 	}
-	
+
 	// Check if they have at least 3 common global target types
 	commonTargets := 0
 	for hTarget := range h.GlobalTargets {
@@ -558,7 +558,7 @@ func (h *Human) IsCompatibleWith(other *Human) bool {
 			}
 		}
 	}
-	
+
 	return commonTargets >= 3
 }
 
@@ -568,7 +568,7 @@ func (h *Human) CanHaveChildren() bool {
 	if h.MaritalStatus != Married || h.Spouse == nil {
 		return false
 	}
-	
+
 	// Age restrictions based on gender
 	if h.Gender == Female {
 		return h.Age >= config.MinMotherAge && h.Age <= config.MaxMotherAge
@@ -595,24 +595,24 @@ func (h *Human) ShouldPlanChild() bool {
 	if h.Gender != Female {
 		return false
 	}
-	
+
 	// Already pregnant
 	if h.IsPregnant {
 		return false
 	}
-	
+
 	// Check basic requirements
 	if !h.CanHaveChildren() {
 		return false
 	}
-	
+
 	// Check if married for required duration
 	marriageTime, exists := h.Family[h.Spouse]
 	marriageTimeHours := marriageTime * 365 * 24 // Convert years to hours
 	if !exists || marriageTimeHours < float64(config.MinMarriageDurationForChildren) {
 		return false
 	}
-	
+
 	// Check if couple has happy_family goal
 	hasHappyFamilyGoal := false
 	for target := range h.GlobalTargets {
@@ -624,17 +624,17 @@ func (h *Human) ShouldPlanChild() bool {
 	if !hasHappyFamilyGoal {
 		return false
 	}
-	
+
 	// Financial stability check
 	if h.GetFamilyIncome() < int64(config.MinFamilyIncomeForChildren) {
 		return false
 	}
-	
+
 	// Limit number of children
 	if len(h.Children) >= config.MaxChildrenPerFamily {
 		return false
 	}
-	
+
 	return true
 }
 
@@ -643,15 +643,15 @@ func (h *Human) PlanChild() {
 	if h.ShouldPlanChild() {
 		// Calculate city family coefficient
 		cityCoefficient := CalculateFamilyFriendlyCoefficient(h.HomeLocation)
-		
+
 		// Use configurable base probability, modified by city coefficient
 		baseProb := config.BaseBirthPlanningProbability / (30 * 24) // Per hour probability
 		adjustedProb := baseProb * cityCoefficient
-		
+
 		if utils.GlobalRandom.NextFloat() < adjustedProb {
 			h.IsPregnant = true
 			h.PregnancyTime = 0
-			
+
 			// Add pregnancy splash
 			splash := NewSplash("pregnancy", []string{"family", "health", "responsibility"}, config.PregnancyDurationHours)
 			h.Splashes = append(h.Splashes, splash)
@@ -664,15 +664,15 @@ func (h *Human) ProcessPregnancy(people []*Human, globalTargets []*GlobalTarget)
 	if !h.IsPregnant {
 		return nil
 	}
-	
+
 	h.PregnancyTime++
-	
+
 	// Check if pregnancy duration is complete
 	if h.PregnancyTime >= config.PregnancyDurationHours {
 		// Give birth!
 		return h.GiveBirth(people, globalTargets)
 	}
-	
+
 	return nil
 }
 
@@ -681,31 +681,31 @@ func (h *Human) GiveBirth(people []*Human, globalTargets []*GlobalTarget) *Human
 	// Reset pregnancy status
 	h.IsPregnant = false
 	h.PregnancyTime = 0
-	
+
 	// Create child with parents
 	parents := make(map[*Human]bool)
 	parents[h] = true
 	parents[h.Spouse] = true
-	
+
 	child := NewHuman(parents, h.HomeLocation, globalTargets)
 	child.Age = 0.0 // Newborn
-	child.Money = 0  // Children don't have money
+	child.Money = 0 // Children don't have money
 	child.ResidentialBuilding = h.ResidentialBuilding
 	child.CurrentBuilding = h.ResidentialBuilding
-	
+
 	// Add child to parents' children
 	h.Children[child] = 0.0
 	h.Spouse.Children[child] = 0.0
-	
+
 	// Add parents to child's parents
 	child.Parents[h] = 0.0
 	child.Parents[h.Spouse] = 0.0
-	
+
 	// Add birth splash to parents
 	birthSplash := NewSplash("child_birth", []string{"family", "happiness", "responsibility"}, 168) // 1 week
 	h.Splashes = append(h.Splashes, birthSplash)
 	h.Spouse.Splashes = append(h.Spouse.Splashes, birthSplash)
-	
+
 	return child
 }
 

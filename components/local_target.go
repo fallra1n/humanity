@@ -1,8 +1,8 @@
 package components
 
 import (
-	"sync"
 	"github.com/fallra1n/humanity/utils"
+	"sync"
 )
 
 // LocalTarget represents a short-term goal
@@ -48,7 +48,7 @@ func (lt *LocalTarget) MarkAsExecuted(action *Action) {
 func (lt *LocalTarget) IsExecutedFull() bool {
 	lt.Mu.RLock()
 	defer lt.Mu.RUnlock()
-	
+
 	remainingTags := make(map[string]bool)
 	for tag := range lt.Tags {
 		remainingTags[tag] = true
@@ -67,7 +67,7 @@ func (lt *LocalTarget) IsExecutedFull() bool {
 func (lt *LocalTarget) Executable(person *Human) bool {
 	lt.Mu.RLock()
 	defer lt.Mu.RUnlock()
-	
+
 	unclosedTags := make(map[string]bool)
 	for tag := range lt.Tags {
 		unclosedTags[tag] = true
@@ -96,7 +96,7 @@ func (lt *LocalTarget) Executable(person *Human) bool {
 func (lt *LocalTarget) ChooseAction(person *Human) *Action {
 	lt.Mu.RLock()
 	defer lt.Mu.RUnlock()
-	
+
 	leftTags := make(map[string]bool)
 	for tag := range lt.Tags {
 		leftTags[tag] = true

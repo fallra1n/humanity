@@ -6,12 +6,12 @@ import "sync"
 type BuildingType string
 
 const (
-	Hospital        BuildingType = "hospital"
-	School          BuildingType = "school"
-	Workplace       BuildingType = "workplace"
-	Entertainment   BuildingType = "entertainment"
-	Cafe            BuildingType = "cafe"
-	Shop            BuildingType = "shop"
+	Hospital         BuildingType = "hospital"
+	School           BuildingType = "school"
+	Workplace        BuildingType = "workplace"
+	Entertainment    BuildingType = "entertainment"
+	Cafe             BuildingType = "cafe"
+	Shop             BuildingType = "shop"
 	ResidentialHouse BuildingType = "residential_house"
 )
 
@@ -21,17 +21,17 @@ type Building struct {
 	Type     BuildingType
 	Name     string
 	Location *Location
-	
+
 	// For workplaces - contains job vacancies
 	Jobs map[*Job]bool
-	
+
 	// For residential - contains residents
 	Residents map[*Human]bool
-	
+
 	// General capacity and current occupancy
 	Capacity int
 	Occupied int
-	
+
 	// Thread safety
 	Mu sync.RWMutex
 }
@@ -55,10 +55,10 @@ func (b *Building) AddJob(job *Job) bool {
 	if b.Type != Workplace {
 		return false
 	}
-	
+
 	b.Mu.Lock()
 	defer b.Mu.Unlock()
-	
+
 	b.Jobs[job] = true
 	job.Building = b
 	return true
@@ -69,18 +69,18 @@ func (b *Building) AddResident(human *Human) bool {
 	if b.Type != ResidentialHouse {
 		return false
 	}
-	
+
 	b.Mu.Lock()
 	defer b.Mu.Unlock()
-	
+
 	if b.Occupied >= b.Capacity {
 		return false
 	}
-	
+
 	b.Residents[human] = true
 	b.Occupied++
 	human.ResidentialBuilding = b
-	human.CurrentBuilding = b  // Start at home
+	human.CurrentBuilding = b // Start at home
 	return true
 }
 
@@ -89,10 +89,10 @@ func (b *Building) RemoveResident(human *Human) {
 	if b.Type != ResidentialHouse {
 		return
 	}
-	
+
 	b.Mu.Lock()
 	defer b.Mu.Unlock()
-	
+
 	if b.Residents[human] {
 		delete(b.Residents, human)
 		b.Occupied--
@@ -105,10 +105,10 @@ func (b *Building) GetAvailableJobs() []*Vacancy {
 	if b.Type != Workplace {
 		return nil
 	}
-	
+
 	b.Mu.RLock()
 	defer b.Mu.RUnlock()
-	
+
 	var vacancies []*Vacancy
 	for job := range b.Jobs {
 		job.Mu.RLock()
@@ -119,7 +119,7 @@ func (b *Building) GetAvailableJobs() []*Vacancy {
 		}
 		job.Mu.RUnlock()
 	}
-	
+
 	return vacancies
 }
 
@@ -134,7 +134,7 @@ func (b *Building) HasCapacity() bool {
 func (b *Building) GetOccupancyRate() float64 {
 	b.Mu.RLock()
 	defer b.Mu.RUnlock()
-	
+
 	if b.Capacity == 0 {
 		return 0
 	}

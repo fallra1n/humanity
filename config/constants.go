@@ -3,14 +3,14 @@ package config
 // Population and Employment Constants
 const (
 	// Total population in simulation
-	TotalPopulation = 100
+	TotalPopulation = 200
 	
 	// Employment rate (90% employed, 10% unemployed - typical for Russia)
 	EmploymentRate = 0.9
 	
 	// City population distribution
-	SmallCityPopulation = 40  // 40% in small city
-	LargeCityPopulation = 60  // 60% in large city
+	SmallCityPopulation = 0.4 * TotalPopulation  // 40% in small city
+	LargeCityPopulation = 0.6 * TotalPopulation  // 60% in large city
 )
 
 // Economic Constants
@@ -134,7 +134,7 @@ const (
 	HoursPerYear = 365 * HoursPerDay
 	
 	// Simulation duration
-	SimulationYears = 1
+	SimulationYears = 3
 	TotalSimulationHours = SimulationYears * HoursPerYear
 )
 
@@ -173,4 +173,29 @@ const (
 	WorkStartHour = 9   // 09:00
 	WorkEndHour = 18    // 18:00
 	WorkDuration = 9    // hours of work
+)
+
+// Family and Birth Constants
+const (
+	// Marriage and family planning
+	MinMarriageDurationForChildren = 8760 // hours (1 year)
+	MinFamilyIncomeForChildren = 50000    // rubles combined monthly income
+	MaxChildrenPerFamily = 4              // maximum children per couple
+	
+	// Birth probability and timing
+	BaseBirthPlanningProbability = 0.25   // 25% chance per month for eligible couples
+	PregnancyDurationHours = 6480         // hours (9 months)
+	ChildExpensesPerDay = 300             // rubles per child per day
+	
+	// Age restrictions for having children
+	MinMotherAge = 18.0
+	MaxMotherAge = 45.0
+	MinFatherAge = 18.0
+	MaxFatherAge = 60.0
+	
+	// City family-friendly coefficients
+	BaseFamilyCoefficient = 1.0           // base multiplier
+	HospitalFamilyBonus = 0.2             // +20% per hospital
+	SchoolFamilyBonus = 0.15              // +15% per school
+	MaxFamilyCoefficient = 2.5           // maximum multiplier
 )

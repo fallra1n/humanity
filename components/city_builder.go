@@ -242,3 +242,32 @@ func PrintCityInfo(city *Location) {
 	fmt.Printf("Total jobs: %d\n", len(city.Jobs))
 	fmt.Printf("Total residents: %d\n", len(city.Humans))
 }
+
+// CalculateFamilyFriendlyCoefficient calculates how family-friendly a city is
+// based on its infrastructure (hospitals, schools, etc.)
+func CalculateFamilyFriendlyCoefficient(city *Location) float64 {
+	city.Mu.RLock()
+	defer city.Mu.RUnlock()
+	
+	coefficient := 1.0 // Base coefficient
+	
+	buildingCounts := make(map[BuildingType]int)
+	for building := range city.Buildings {
+		buildingCounts[building.Type]++
+	}
+	
+	// Hospitals increase family coefficient (medical care for children)
+	coefficient += float64(buildingCounts[Hospital]) * 0.3
+	
+	// Schools increase family coefficient (education for children)
+	coefficient += float64(buildingCounts[School]) * 0.4
+	
+	// Entertainment centers increase coefficient (family activities)
+	coefficient += float64(buildingCounts[Entertainment]) * 0.2
+	
+	// Cafes and shops provide convenience for families
+	coefficient += float64(buildingCounts[Cafe]) * 0.1
+	coefficient += float64(buildingCounts[Shop]) * 0.1
+	
+	return coefficient
+}

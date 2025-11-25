@@ -87,6 +87,26 @@ func processMarriages(people []*components.Human) {
 	}
 }
 
+// processBirths handles pregnancy progression and births
+func processBirths(people []*components.Human, globalTargets []*components.GlobalTarget) []*components.Human {
+	var newChildren []*components.Human
+
+	for _, person := range people {
+		if person.Gender == components.Female && person.IsPregnant {
+			newChild := person.ProcessPregnancy(people, globalTargets)
+			if newChild != nil {
+				// Child was born!
+				newChildren = append(newChildren, newChild)
+
+				// Add child to the city
+				person.HomeLocation.Humans[newChild] = true
+			}
+		}
+	}
+
+	return newChildren
+}
+
 func main() {
 	// Load actions
 	actions, err := LoadActions("actions.ini")
@@ -303,6 +323,12 @@ func main() {
 			processMarriages(people)
 		}
 
+		// Process births (children born during this hour)
+		newChildren := processBirths(people, globalTargets)
+		if len(newChildren) > 0 {
+			people = append(people, newChildren...)
+		}
+
 		// Process potential layoffs after all humans have acted
 		for _, person := range people {
 			if !person.Dead {
@@ -341,6 +367,9 @@ func main() {
 	maleCount := 0
 	femaleCount := 0
 	marriedCount := 0
+	childrenCount := 0
+	pregnantCount := 0
+	totalChildren := 0
 
 	for _, person := range people {
 		if !person.Dead {
@@ -357,6 +386,13 @@ func main() {
 		if person.MaritalStatus == components.Married {
 			marriedCount++
 		}
+		if person.Age < 18.0 {
+			childrenCount++
+		}
+		if person.IsPregnant {
+			pregnantCount++
+		}
+		totalChildren += len(person.Children)
 		completedTargetsCount += len(person.CompletedGlobalTargets)
 		totalMoney += person.Money
 		totalItems += len(person.Items)
@@ -370,6 +406,11 @@ func main() {
 		employedCount, aliveCount, float64(employedCount)/float64(aliveCount)*100)
 	fmt.Printf("Marriage Rate: %d/%d humans married (%.1f%%)\n",
 		marriedCount, aliveCount, float64(marriedCount)/float64(aliveCount)*100)
+	fmt.Printf("Children: %d children under 18 (%.1f%% of population)\n",
+		childrenCount, float64(childrenCount)/float64(len(people))*100)
+	fmt.Printf("Pregnancies: %d women currently pregnant\n", pregnantCount)
+	fmt.Printf("Total Children Born: %d children (average %.1f per adult)\n",
+		totalChildren/2, float64(totalChildren)/float64(len(people)-childrenCount)) // Divide by 2 since both parents count the same child
 	fmt.Printf("Total Completed Global Targets: %d\n", completedTargetsCount)
 	fmt.Printf("Average Completed Targets per Person: %.1f\n",
 		float64(completedTargetsCount)/float64(len(people)))

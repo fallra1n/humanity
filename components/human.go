@@ -491,6 +491,16 @@ func (h *Human) MarryWith(other *Human) {
 		return // Can't marry yourself
 	}
 
+	// Determine who moves to whom (bride moves to groom)
+	var bride, groom *Human
+	if h.Gender == Female {
+		bride = h
+		groom = other
+	} else {
+		bride = other
+		groom = h
+	}
+
 	// Create bidirectional marriage
 	h.MaritalStatus = Married
 	h.Spouse = other
@@ -503,6 +513,11 @@ func (h *Human) MarryWith(other *Human) {
 	}
 	if _, exists := other.Family[h]; !exists {
 		other.Family[h] = 0.0
+	}
+
+	// Bride moves to groom's residential building (always, even if in same building)
+	if bride.ResidentialBuilding != nil && groom.ResidentialBuilding != nil {
+		bride.ResidentialBuilding.MoveToSpouse(bride, groom)
 	}
 }
 

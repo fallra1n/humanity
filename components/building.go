@@ -32,13 +32,17 @@ type Building struct {
 	Capacity int
 	Occupied int
 
+	// For residential buildings - apartment sales
+	ApartmentsForSale []*Human // List of apartments available for sale (previous owners)
+	ApartmentPrice    int64    // Price per apartment in rubles
+
 	// Thread safety
 	Mu sync.RWMutex
 }
 
 // NewBuilding creates a new building
 func NewBuilding(id int, buildingType BuildingType, name string, capacity int, location *Location) *Building {
-	return &Building{
+	building := &Building{
 		ID:        id,
 		Type:      buildingType,
 		Name:      name,
@@ -48,6 +52,19 @@ func NewBuilding(id int, buildingType BuildingType, name string, capacity int, l
 		Capacity:  capacity,
 		Occupied:  0,
 	}
+
+	// Initialize apartment sales for residential buildings
+	if buildingType == ResidentialHouse {
+		// Different prices for small and large cities
+		if location.Name == "Greenville" {
+			building.ApartmentPrice = 2000000 // 2 million rubles for small city
+		} else {
+			building.ApartmentPrice = 3000000 // 3 million rubles for large city
+		}
+		building.ApartmentsForSale = make([]*Human, 0) // Initially no apartments for sale
+	}
+
+	return building
 }
 
 // AddJob adds a job to a workplace building
@@ -139,4 +156,80 @@ func (b *Building) GetOccupancyRate() float64 {
 		return 0
 	}
 	return float64(b.Occupied) / float64(b.Capacity) * 100
+}
+
+// PutApartmentForSale puts an apartment up for sale when a resident moves out
+func (b *Building) PutApartmentForSale(previousOwner *Human) {
+	if b.Type != ResidentialHouse {
+		return
+	}
+
+	b.Mu.Lock()
+	defer b.Mu.Unlock()
+
+	b.ApartmentsForSale = append(b.ApartmentsForSale, previousOwner)
+}
+
+// BuyApartment allows a human to buy an apartment
+func (b *Building) BuyApartment(human *Human) bool {
+	if b.Type != ResidentialHouse {
+		return false
+	}
+
+	b.Mu.Lock()
+	defer b.Mu.Unlock()
+
+	if len(b.ApartmentsForSale) <= 0 {
+		return false
+	}
+
+	// Check if human has enough money
+	if human.Money < b.ApartmentPrice {
+		return false
+	}
+
+	// Process the purchase
+	human.Money -= b.ApartmentPrice
+	// Remove the first apartment from sale list
+	b.ApartmentsForSale = b.ApartmentsForSale[1:]
+	b.Residents[human] = true
+	b.Occupied++
+	human.ResidentialBuilding = b
+	human.CurrentBuilding = b
+
+	return true
+}
+
+// MoveToSpouse moves a person to their spouse's residential building
+func (b *Building) MoveToSpouse(human *Human, spouse *Human) bool {
+	if b.Type != ResidentialHouse {
+		return false
+	}
+
+	spouseBuilding := spouse.ResidentialBuilding
+	if spouseBuilding == nil || spouseBuilding.Type != ResidentialHouse {
+		return false
+	}
+
+	// Lock current building first
+	b.Mu.Lock()
+
+	// Remove from current building and put apartment for sale
+	if b.Residents[human] {
+		delete(b.Residents, human)
+		b.Occupied--
+		b.ApartmentsForSale = append(b.ApartmentsForSale, human) // Put apartment up for sale directly
+	}
+	b.Mu.Unlock()
+
+	// Lock spouse's building
+	spouseBuilding.Mu.Lock()
+	defer spouseBuilding.Mu.Unlock()
+
+	// Add to spouse's building (no capacity check since it's a move within existing capacity)
+	spouseBuilding.Residents[human] = true
+	human.ResidentialBuilding = spouseBuilding
+	human.CurrentBuilding = spouseBuilding
+
+	return true
 }

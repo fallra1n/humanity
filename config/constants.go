@@ -113,7 +113,7 @@ const (
 	SmallCityEntertainmentCapacity = 150
 	SmallCityCafeCapacity          = 30
 	SmallCityShopCapacity          = 40
-	SmallCityHouseCapacity         = 15
+	SmallCityHouseCapacity         = 30
 
 	// Large city building capacities
 	LargeCityHospitalCapacity      = 75
@@ -122,7 +122,7 @@ const (
 	LargeCityEntertainmentCapacity = 200
 	LargeCityCafeCapacity          = 40
 	LargeCityShopCapacity          = 50
-	LargeCityHouseCapacity         = 25
+	LargeCityHouseCapacity         = 45
 )
 
 // Simulation Time Constants

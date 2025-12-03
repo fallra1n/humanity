@@ -370,6 +370,10 @@ func main() {
 	childrenCount := 0
 	pregnantCount := 0
 	totalChildren := 0
+	moveCount := 0
+	apartmentsForSaleSmallCity := 0
+	apartmentsForSaleLargeCity := 0
+	peopleWithoutHousing := 0
 
 	for _, person := range people {
 		if !person.Dead {
@@ -396,6 +400,33 @@ func main() {
 		completedTargetsCount += len(person.CompletedGlobalTargets)
 		totalMoney += person.Money
 		totalItems += len(person.Items)
+		
+		// Count people without housing
+		if person.ResidentialBuilding == nil {
+			peopleWithoutHousing++
+		}
+
+		// Count moves due to marriage
+		if person.MaritalStatus == components.Married && person.Gender == components.Female {
+			// Check if the woman moved to her husband's building
+			if person.Spouse != nil && person.ResidentialBuilding != nil &&
+				person.Spouse.ResidentialBuilding != nil &&
+				person.ResidentialBuilding == person.Spouse.ResidentialBuilding {
+				moveCount++
+			}
+		}
+	}
+
+	// Count apartments for sale in each city
+	for building := range smallCity.Buildings {
+		if building.Type == components.ResidentialHouse {
+			apartmentsForSaleSmallCity += len(building.ApartmentsForSale)
+		}
+	}
+	for building := range largeCity.Buildings {
+		if building.Type == components.ResidentialHouse {
+			apartmentsForSaleLargeCity += len(building.ApartmentsForSale)
+		}
 	}
 
 	fmt.Printf("Population: %d humans (%d male, %d female)\n",
@@ -411,6 +442,12 @@ func main() {
 	fmt.Printf("Pregnancies: %d women currently pregnant\n", pregnantCount)
 	fmt.Printf("Total Children Born: %d children (average %.1f per adult)\n",
 		totalChildren/2, float64(totalChildren)/float64(len(people)-childrenCount)) // Divide by 2 since both parents count the same child
+	fmt.Printf("Marriage Moves: %d women moved to husband's building\n", moveCount)
+	fmt.Printf("Apartments for Sale: %d in %s, %d in %s (total: %d)\n",
+		apartmentsForSaleSmallCity, smallCity.Name, apartmentsForSaleLargeCity, largeCity.Name,
+		apartmentsForSaleSmallCity+apartmentsForSaleLargeCity)
+	fmt.Printf("People without housing: %d/%d (%.1f%%)\n",
+		peopleWithoutHousing, len(people), float64(peopleWithoutHousing)/float64(len(people))*100)
 	fmt.Printf("Total Completed Global Targets: %d\n", completedTargetsCount)
 	fmt.Printf("Average Completed Targets per Person: %.1f\n",
 		float64(completedTargetsCount)/float64(len(people)))

@@ -877,6 +877,7 @@ func (h *Human) PrintFinalInfo(id int) {
 	fmt.Printf("Gender: %s\n", h.Gender)
 	fmt.Printf("Money: %d rubles\n", h.Money)
 	fmt.Printf("Job: %s\n", h.getJobStatus())
+	fmt.Printf("Family Status: %s\n", h.MaritalStatus)
 
 	fmt.Printf("Completed Global Targets (%d):\n", len(h.CompletedGlobalTargets))
 	for target := range h.CompletedGlobalTargets {

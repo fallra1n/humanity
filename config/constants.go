@@ -3,7 +3,7 @@ package config
 // Константы населения и занятости
 const (
 	// Общее население в симуляции
-	TotalPopulation = 10
+	TotalPopulation = 200
 
 	// Уровень занятости (90% трудоустроены, 10% безработные - типично для России)
 	EmploymentRate = 0.9
@@ -134,7 +134,7 @@ const (
 	HoursPerYear  = 365 * HoursPerDay
 
 	// Продолжительность симуляции
-	SimulationYears      = 0.5
+	SimulationYears      = 2
 	TotalSimulationHours = SimulationYears * HoursPerYear
 )
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"sync"
@@ -34,6 +35,11 @@ func loadInitData() ([]*components.Action, []*components.LocalTarget, []*compone
 }
 
 func main() {
+	// Парсинг аргументов командной строки
+	var showStats bool
+	flag.BoolVar(&showStats, "stat", false, "Показать подробную статистику")
+	flag.Parse()
+
 	actions, localTargets, globalTargets := loadInitData()
 
 	// Создать карты имен для поиска
@@ -43,164 +49,26 @@ func main() {
 	}
 
 	// Создать два города
-	smallCity := components.CreateSmallCity("Greenville")
-	largeCity := components.CreateLargeCity("Metropolis")
+	smallCity := components.CreateSmallCity("City 1")
+	largeCity := components.CreateLargeCity("City 2")
 
-	// Вывести информацию о городах
-	components.PrintCityInfo(smallCity)
-	components.PrintCityInfo(largeCity)
-
-	// Создать людей для каждого города отдельно для обеспечения уровня занятости в каждом
-	var people []*components.Human
-
-	// Население и занятость малого города
-	smallCityEmployed := int(float64(config.SmallCityPopulation) * config.EmploymentRate)
-	smallCityResidential := components.GetResidentialBuildings(smallCity)
-	for i := 0; i < config.SmallCityPopulation; i++ {
-		human := components.NewHuman(make(map[*components.Human]bool), smallCity, globalTargets)
-		human.Money = config.StartingMoney
-
-		// Назначить жилое здание
-		assigned := false
-		for _, building := range smallCityResidential {
-			if building.AddResident(human) {
-				assigned = true
-				break
-			}
-		}
-		if !assigned {
-			fmt.Printf("Warning: Could not assign residential building to small city human %d\n", i+1)
-		}
-
-		// Трудоустройство на основе конфигурационного коэффициента
-		if i < smallCityEmployed {
-			var availableVacancies []*components.Vacancy
-
-			// Искать работы в рабочих зданиях
-			for building := range smallCity.Buildings {
-				if building.Type == components.Workplace {
-					for job := range building.Jobs {
-						for vacancy, count := range job.VacantPlaces {
-							if count > 0 {
-								canWork := true
-								for requiredTag := range vacancy.RequiredTags {
-									if human.Items[requiredTag] <= 0 {
-										canWork = false
-										break
-									}
-								}
-								if canWork {
-									availableVacancies = append(availableVacancies, vacancy)
-								}
-							}
-						}
-					}
-				}
-			}
-
-			if len(availableVacancies) > 0 {
-				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
-				human.Job = chosenVacancy
-				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
-				human.WorkBuilding = chosenVacancy.Parent.Building // Установить рабочее здание
-				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
-			}
-		}
-
-		people = append(people, human)
-		smallCity.Humans[human] = true
+	// Вывести информацию о городах (только если включен флаг --stat)
+	if showStats {
+		components.PrintCityInfo(smallCity)
+		components.PrintCityInfo(largeCity)
 	}
 
-	// Население и занятость большого города
-	largeCityEmployed := int(float64(config.LargeCityPopulation) * config.EmploymentRate)
-	largeCityResidential := components.GetResidentialBuildings(largeCity)
-	for i := 0; i < config.LargeCityPopulation; i++ {
-		human := components.NewHuman(make(map[*components.Human]bool), largeCity, globalTargets)
-		human.Money = config.StartingMoney
+	// Создать популяцию для симуляции
+	people, populationStats := CreatePopulation(smallCity, largeCity, globalTargets)
 
-		// Назначить жилое здание
-		assigned := false
-		for _, building := range largeCityResidential {
-			if building.AddResident(human) {
-				assigned = true
-				break
-			}
-		}
-		if !assigned {
-			fmt.Printf("Warning: Could not assign residential building to large city human %d\n", i+1)
-		}
-
-		// Трудоустройство на основе конфигурационного коэффициента
-		if i < largeCityEmployed {
-			var availableVacancies []*components.Vacancy
-
-			// Искать работы в рабочих зданиях
-			for building := range largeCity.Buildings {
-				if building.Type == components.Workplace {
-					for job := range building.Jobs {
-						for vacancy, count := range job.VacantPlaces {
-							if count > 0 {
-								canWork := true
-								for requiredTag := range vacancy.RequiredTags {
-									if human.Items[requiredTag] <= 0 {
-										canWork = false
-										break
-									}
-								}
-								if canWork {
-									availableVacancies = append(availableVacancies, vacancy)
-								}
-							}
-						}
-					}
-				}
-			}
-
-			if len(availableVacancies) > 0 {
-				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
-				human.Job = chosenVacancy
-				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
-				human.WorkBuilding = chosenVacancy.Parent.Building // Установить рабочее здание
-				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
-			}
-		}
-
-		people = append(people, human)
-		largeCity.Humans[human] = true
+	// Вывести статистику популяции  (только если включен флаг --stat)
+	if showStats {
+		PrintPopulationStats(populationStats, smallCity, largeCity)
 	}
 
-	// Подсчитать фактическую статистику занятости
-	actualSmallCityEmployed := 0
-	actualLargeCityEmployed := 0
-	totalEmployed := 0
-
-	for _, person := range people {
-		if person.Job != nil {
-			totalEmployed++
-			if person.HomeLocation == smallCity {
-				actualSmallCityEmployed++
-			} else {
-				actualLargeCityEmployed++
-			}
-		}
-	}
-
-	fmt.Printf("\nCreated %d people total:\n", len(people))
-	fmt.Printf("  %s: %f residents, %d employed (%.1f%%)\n",
-		smallCity.Name, config.SmallCityPopulation, actualSmallCityEmployed,
-		float64(actualSmallCityEmployed)/float64(config.SmallCityPopulation)*100)
-	fmt.Printf("  %s: %f residents, %d employed (%.1f%%)\n",
-		largeCity.Name, config.LargeCityPopulation, actualLargeCityEmployed,
-		float64(actualLargeCityEmployed)/float64(config.LargeCityPopulation)*100)
-	fmt.Printf("Total employment: %d employed, %d unemployed (%.1f%% employment rate)\n",
-		totalEmployed, len(people)-totalEmployed, float64(totalEmployed)/float64(len(people))*100)
-
-	// Вывести начальное состояние всех людей
-	fmt.Println("========================================")
-	fmt.Println("INITIAL STATE OF ALL HUMANS")
-	fmt.Println("========================================")
-	for i, person := range people {
-		person.PrintInitialInfo(i + 1)
+	// Вывести начальное состояние всех людей (только если включен флаг --stat)
+	if showStats {
+		PrintInitialStatistics(people)
 	}
 
 	// Параметры симуляции из конфигурации
@@ -261,168 +129,15 @@ func main() {
 
 	fmt.Printf("Simulation completed. Total iteration time: %v\n", iterateTimer)
 
-	// Вывести финальное состояние всех людей
-	fmt.Println("\n========================================")
-	fmt.Println("FINAL STATE OF ALL HUMANS")
-	fmt.Println("========================================")
-	for i, person := range people {
-		person.PrintFinalInfo(i + 1)
-	}
-
-	// Вывести сводную статистику
-	fmt.Println("========================================")
-	fmt.Println("SIMULATION SUMMARY")
-	fmt.Println("========================================")
-
-	aliveCount := 0
-	completedTargetsCount := 0
-	totalMoney := int64(0)
-	employedCount := 0
-	totalItems := 0
-	maleCount := 0
-	femaleCount := 0
-	marriedCount := 0
-	childrenCount := 0
-	pregnantCount := 0
-	totalChildren := 0
-	moveCount := 0
-	apartmentsForSaleSmallCity := 0
-	apartmentsForSaleLargeCity := 0
-	peopleWithoutHousing := 0
-
-	for _, person := range people {
-		if !person.Dead {
-			aliveCount++
-		}
-		if person.Job != nil {
-			employedCount++
-		}
-		if person.Gender == components.Male {
-			maleCount++
-		} else {
-			femaleCount++
-		}
-		if person.MaritalStatus == components.Married {
-			marriedCount++
-		}
-		if person.Age < 18.0 {
-			childrenCount++
-		}
-		if person.IsPregnant {
-			pregnantCount++
-		}
-		totalChildren += len(person.Children)
-		completedTargetsCount += len(person.CompletedGlobalTargets)
-		totalMoney += person.Money
-		totalItems += len(person.Items)
-
-		// Count people without housing
-		if person.ResidentialBuilding == nil {
-			peopleWithoutHousing++
-		}
-
-		// Count moves due to marriage
-		if person.MaritalStatus == components.Married && person.Gender == components.Female {
-			// Check if the woman moved to her husband's building
-			if person.Spouse != nil && person.ResidentialBuilding != nil &&
-				person.Spouse.ResidentialBuilding != nil &&
-				person.ResidentialBuilding == person.Spouse.ResidentialBuilding {
-				moveCount++
-			}
-		}
-	}
-
-	// Подсчитать квартиры на продажу в каждом городе
-	for building := range smallCity.Buildings {
-		if building.Type == components.ResidentialHouse {
-			apartmentsForSaleSmallCity += len(building.ApartmentsForSale)
-		}
-	}
-	for building := range largeCity.Buildings {
-		if building.Type == components.ResidentialHouse {
-			apartmentsForSaleLargeCity += len(building.ApartmentsForSale)
-		}
-	}
-
-	fmt.Printf("Population: %d humans (%d male, %d female)\n",
-		len(people), maleCount, femaleCount)
-	fmt.Printf("Survival Rate: %d/%d humans alive (%.1f%%)\n",
-		aliveCount, len(people), float64(aliveCount)/float64(len(people))*100)
-	fmt.Printf("Employment Rate: %d/%d humans employed (%.1f%%)\n",
-		employedCount, aliveCount, float64(employedCount)/float64(aliveCount)*100)
-	fmt.Printf("Marriage Rate: %d/%d humans married (%.1f%%)\n",
-		marriedCount, aliveCount, float64(marriedCount)/float64(aliveCount)*100)
-	fmt.Printf("Children: %d children under 18 (%.1f%% of population)\n",
-		childrenCount, float64(childrenCount)/float64(len(people))*100)
-	fmt.Printf("Pregnancies: %d women currently pregnant\n", pregnantCount)
-	fmt.Printf("Total Children Born: %d children (average %.1f per adult)\n",
-		totalChildren/2, float64(totalChildren)/float64(len(people)-childrenCount)) // Divide by 2 since both parents count the same child
-	fmt.Printf("Marriage Moves: %d women moved to husband's building\n", moveCount)
-	fmt.Printf("Apartments for Sale: %d in %s, %d in %s (total: %d)\n",
-		apartmentsForSaleSmallCity, smallCity.Name, apartmentsForSaleLargeCity, largeCity.Name,
-		apartmentsForSaleSmallCity+apartmentsForSaleLargeCity)
-	fmt.Printf("People without housing: %d/%d (%.1f%%)\n",
-		peopleWithoutHousing, len(people), float64(peopleWithoutHousing)/float64(len(people))*100)
-	fmt.Printf("Total Completed Global Targets: %d\n", completedTargetsCount)
-	fmt.Printf("Average Completed Targets per Person: %.1f\n",
-		float64(completedTargetsCount)/float64(len(people)))
-	fmt.Printf("Total Money in Economy: %d rubles\n", totalMoney)
-	fmt.Printf("Average Money per Person: %d rubles\n", totalMoney/int64(len(people)))
-	fmt.Printf("Total Items Acquired: %d\n", totalItems)
-
-	// Статистика новой функциональности
-	totalFriends := 0
-	peopleWithFriends := 0
-	peopleAtWork := 0
-	peopleAtHome := 0
-
-	for _, person := range people {
-		if !person.Dead {
-			totalFriends += len(person.Friends)
-			if len(person.Friends) > 0 {
-				peopleWithFriends++
-			}
-
-			// Подсчитать текущие местоположения
-			if person.CurrentBuilding != nil {
-				if person.CurrentBuilding == person.WorkBuilding {
-					peopleAtWork++
-				} else if person.CurrentBuilding == person.ResidentialBuilding {
-					peopleAtHome++
-				}
-			}
-		}
-	}
-
-	fmt.Printf("\n=== NEW FEATURES STATISTICS ===\n")
-	fmt.Printf("Social Connections:\n")
-	fmt.Printf("  Total Friendships: %d\n", totalFriends)
-	fmt.Printf("  People with Friends: %d/%d (%.1f%%)\n",
-		peopleWithFriends, aliveCount, float64(peopleWithFriends)/float64(aliveCount)*100)
-	fmt.Printf("  Average Friends per Person: %.1f\n",
-		float64(totalFriends)/float64(aliveCount))
-
-	fmt.Printf("Location Distribution:\n")
-	fmt.Printf("  People at Work: %d (%.1f%%)\n",
-		peopleAtWork, float64(peopleAtWork)/float64(aliveCount)*100)
-	fmt.Printf("  People at Home: %d (%.1f%%)\n",
-		peopleAtHome, float64(peopleAtHome)/float64(aliveCount)*100)
-	fmt.Printf("  Other Locations: %d (%.1f%%)\n",
-		aliveCount-peopleAtWork-peopleAtHome,
-		float64(aliveCount-peopleAtWork-peopleAtHome)/float64(aliveCount)*100)
-
-	// Статистика выполнения целей
-	fmt.Println("\nTarget Completion Statistics:")
-	targetStats := make(map[string]int)
-	for _, person := range people {
-		for target := range person.CompletedGlobalTargets {
-			targetStats[target.Name]++
-		}
-	}
-
-	for targetName, count := range targetStats {
-		fmt.Printf("  %s: %d people (%.1f%%)\n",
-			targetName, count, float64(count)/float64(len(people))*100)
+	// Вывести финальное состояние всех людей (только если включен флаг --stat)
+	if showStats {
+		PrintFinalStatistics(people)
+		PrintSimulationSummary(people, smallCity, largeCity)
+	} else {
+		// Краткая статистика без флага --stat
+		stats := CalculateStatistics(people, smallCity, largeCity)
+		fmt.Printf("Simulation completed. Population: %d (%d alive, %d employed)\n",
+			len(people), stats.AliveCount, stats.EmployedCount)
 	}
 
 	// Подавить предупреждения о неиспользуемых переменных

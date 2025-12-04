@@ -59,7 +59,7 @@ func NewBuilding(id int, buildingType BuildingType, name string, capacity int, l
 	// Инициализировать продажу квартир для жилых зданий
 	if buildingType == ResidentialHouse {
 		// Разные цены для малых и больших городов
-		if location.Name == "Greenville" {
+		if location.Name == "City 1" {
 			building.ApartmentPrice = 2000000 // 2 миллиона рублей для малого города
 		} else {
 			building.ApartmentPrice = 3000000 // 3 миллиона рублей для большого города
@@ -100,7 +100,7 @@ func (b *Building) AddResident(human *Human) bool {
 	b.Residents[human] = true
 	b.Occupied++
 	human.ResidentialBuilding = b
-	human.CurrentBuilding = b // Начать дома
+	human.CurrentBuilding = b
 	return true
 }
 

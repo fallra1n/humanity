@@ -36,6 +36,9 @@ type Building struct {
 	ApartmentsForSale []*Human // Список квартир доступных для продажи (предыдущие владельцы)
 	ApartmentPrice    int64    // Цена за квартиру в рублях
 
+	// Координаты
+	X, Y string
+
 	// Потокобезопасность
 	Mu sync.RWMutex
 }

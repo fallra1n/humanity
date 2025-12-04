@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/csv"
 	"fmt"
 	"log"
-	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -14,166 +11,7 @@ import (
 	"github.com/fallra1n/humanity/utils"
 )
 
-// processFriendships обрабатывает формирование дружбы между людьми в одном здании
-func processFriendships(people []*components.Human) {
-	// Группировать людей по их текущему зданию
-	buildingGroups := make(map[*components.Building][]*components.Human)
-
-	for _, person := range people {
-		if person.Dead || person.CurrentBuilding == nil {
-			continue
-		}
-		buildingGroups[person.CurrentBuilding] = append(buildingGroups[person.CurrentBuilding], person)
-	}
-
-	// Обработать дружбу в каждом здании
-	for _, group := range buildingGroups {
-		if len(group) < 2 {
-			continue // Нужно как минимум 2 человека для формирования дружбы
-		}
-
-		// Проверить все пары людей в здании
-		for i := 0; i < len(group); i++ {
-			for j := i + 1; j < len(group); j++ {
-				person1 := group[i]
-				person2 := group[j]
-
-				// Пропустить если уже друзья
-				if _, alreadyFriends := person1.Friends[person2]; alreadyFriends {
-					continue
-				}
-
-				// 25% шанс стать друзьями
-				if utils.GlobalRandom.NextFloat() < 0.25 {
-					// Создать двустороннюю дружбу
-					person1.Friends[person2] = 0.0 // Начать с 0 силы отношений
-					person2.Friends[person1] = 0.0
-				}
-			}
-		}
-	}
-}
-
-// processMarriages обрабатывает формирование браков между совместимыми людьми
-func processMarriages(people []*components.Human) {
-	// Группировать одиноких людей по их текущему зданию
-	buildingGroups := make(map[*components.Building][]*components.Human)
-
-	for _, person := range people {
-		if person.Dead || person.CurrentBuilding == nil || person.MaritalStatus != components.Single {
-			continue
-		}
-		buildingGroups[person.CurrentBuilding] = append(buildingGroups[person.CurrentBuilding], person)
-	}
-
-	// Обработать потенциальные браки в каждом здании
-	for _, group := range buildingGroups {
-		if len(group) < 2 {
-			continue // Нужно как минимум 2 человека для формирования браков
-		}
-
-		// Проверить все пары людей в здании
-		for i := 0; i < len(group); i++ {
-			for j := i + 1; j < len(group); j++ {
-				person1 := group[i]
-				person2 := group[j]
-
-				// Проверить совместимость
-				if person1.IsCompatibleWith(person2) {
-					// Небольшой шанс пожениться (5% в час при совместимости)
-					if utils.GlobalRandom.NextFloat() < 0.05 {
-						person1.MarryWith(person2)
-					}
-				}
-			}
-		}
-	}
-}
-
-// processBirths обрабатывает прогресс беременности и роды
-func processBirths(people []*components.Human, globalTargets []*components.GlobalTarget) []*components.Human {
-	var newChildren []*components.Human
-
-	for _, person := range people {
-		if person.Gender == components.Female && person.IsPregnant {
-			newChild := person.ProcessPregnancy(people, globalTargets)
-			if newChild != nil {
-				// Ребенок родился!
-				newChildren = append(newChildren, newChild)
-
-				// Добавить ребенка в город
-				person.HomeLocation.Humans[newChild] = true
-			}
-		}
-	}
-
-	return newChildren
-}
-
-// logToCSV записывает текущее состояние всех людей в CSV файл
-func logToCSV(people []*components.Human, hour uint64) error {
-	filename := "log.csv"
-	
-	// Проверить, существует ли файл, чтобы определить, нужно ли писать заголовки
-	fileExists := false
-	if _, err := os.Stat(filename); err == nil {
-		fileExists = true
-	}
-	
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-	
-	// Записать заголовок если это первый раз
-	if !fileExists {
-		header := []string{"hour", "agent_id", "age", "gender", "alive", "money", "location", "building_type", "job_status", "marital_status"}
-		if err := writer.Write(header); err != nil {
-			return err
-		}
-	}
-	
-	// Записать данные для каждого человека
-	for _, person := range people {
-		location := "unknown"
-		buildingType := "unknown"
-		
-		if person.CurrentBuilding != nil {
-			location = person.CurrentBuilding.Name
-			buildingType = string(person.CurrentBuilding.Type)
-		}
-		
-		jobStatus := "unemployed"
-		if person.Job != nil {
-			jobStatus = "employed"
-		}
-		
-		row := []string{
-			strconv.FormatUint(hour, 10),
-			strconv.Itoa(components.GlobalHumanStorage.Get(person)),
-			fmt.Sprintf("%.2f", person.Age),
-			string(person.Gender),
-			fmt.Sprintf("%t", !person.Dead),
-			strconv.FormatInt(person.Money, 10),
-			location,
-			buildingType,
-			jobStatus,
-			string(person.MaritalStatus),
-		}
-		
-		if err := writer.Write(row); err != nil {
-			return err
-		}
-	}
-	
-	return nil
-}
-
-func main() {
+func loadInitData() ([]*components.Action, []*components.LocalTarget, []*components.GlobalTarget) {
 	// Загрузить действия
 	actions, err := LoadActions("actions.ini")
 	if err != nil {
@@ -191,6 +29,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load global targets: %v", err)
 	}
+
+	return actions, localTargets, globalTargets
+}
+
+func main() {
+	actions, localTargets, globalTargets := loadInitData()
 
 	// Создать карты имен для поиска
 	actionMap, localMap, globalMap, err := CreateNameMaps(actions, localTargets, globalTargets)
@@ -342,10 +186,10 @@ func main() {
 	}
 
 	fmt.Printf("\nCreated %d people total:\n", len(people))
-	fmt.Printf("  %s: %d residents, %d employed (%.1f%%)\n",
+	fmt.Printf("  %s: %f residents, %d employed (%.1f%%)\n",
 		smallCity.Name, config.SmallCityPopulation, actualSmallCityEmployed,
 		float64(actualSmallCityEmployed)/float64(config.SmallCityPopulation)*100)
-	fmt.Printf("  %s: %d residents, %d employed (%.1f%%)\n",
+	fmt.Printf("  %s: %f residents, %d employed (%.1f%%)\n",
 		largeCity.Name, config.LargeCityPopulation, actualLargeCityEmployed,
 		float64(actualLargeCityEmployed)/float64(config.LargeCityPopulation)*100)
 	fmt.Printf("Total employment: %d employed, %d unemployed (%.1f%% employment rate)\n",
@@ -385,12 +229,12 @@ func main() {
 		// Обработать дружбу после того, как все люди действовали (однопоточно для безопасности)
 		// Только в нерабочие часы сна
 		if !utils.IsSleepTime(utils.GlobalTick.Get()) {
-			processFriendships(people)
-			processMarriages(people)
+			components.ProcessFriendships(people)
+			components.ProcessMarriages(people)
 		}
 
 		// Обработать роды (дети, рожденные в течение этого часа)
-		newChildren := processBirths(people, globalTargets)
+		newChildren := components.ProcessBirths(people, globalTargets)
 		if len(newChildren) > 0 {
 			people = append(people, newChildren...)
 		}
@@ -403,14 +247,14 @@ func main() {
 				}
 			}
 		}
-		
+
 		// Записать текущее состояние в CSV
 		if err := logToCSV(people, hour); err != nil {
 			log.Printf("Warning: Failed to write to log.csv: %v", err)
 		}
-		
+
 		iterateTimer += time.Since(startTime)
-		
+
 		// Увеличить глобальное время
 		utils.GlobalTick.Increment()
 	}
@@ -471,7 +315,7 @@ func main() {
 		completedTargetsCount += len(person.CompletedGlobalTargets)
 		totalMoney += person.Money
 		totalItems += len(person.Items)
-		
+
 		// Count people without housing
 		if person.ResidentialBuilding == nil {
 			peopleWithoutHousing++

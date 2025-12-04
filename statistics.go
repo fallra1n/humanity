@@ -100,18 +100,6 @@ func CalculateStatistics(people []*components.Human, smallCity, largeCity *compo
 			stats.TargetStats[target.Name]++
 		}
 	}
-
-	// Подсчитать квартиры на продажу в каждом городе
-	for building := range smallCity.Buildings {
-		if building.Type == components.ResidentialHouse {
-			stats.ApartmentsForSaleSmallCity += len(building.ApartmentsForSale)
-		}
-	}
-	for building := range largeCity.Buildings {
-		if building.Type == components.ResidentialHouse {
-			stats.ApartmentsForSaleLargeCity += len(building.ApartmentsForSale)
-		}
-	}
 	
 	return stats
 }

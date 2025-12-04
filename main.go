@@ -14,9 +14,9 @@ import (
 	"github.com/fallra1n/humanity/utils"
 )
 
-// processFriendships handles friendship formation between people in the same building
+// processFriendships обрабатывает формирование дружбы между людьми в одном здании
 func processFriendships(people []*components.Human) {
-	// Group people by their current building
+	// Группировать людей по их текущему зданию
 	buildingGroups := make(map[*components.Building][]*components.Human)
 
 	for _, person := range people {
@@ -26,27 +26,27 @@ func processFriendships(people []*components.Human) {
 		buildingGroups[person.CurrentBuilding] = append(buildingGroups[person.CurrentBuilding], person)
 	}
 
-	// Process friendships within each building
+	// Обработать дружбу в каждом здании
 	for _, group := range buildingGroups {
 		if len(group) < 2 {
-			continue // Need at least 2 people to form friendships
+			continue // Нужно как минимум 2 человека для формирования дружбы
 		}
 
-		// Check all pairs of people in the building
+		// Проверить все пары людей в здании
 		for i := 0; i < len(group); i++ {
 			for j := i + 1; j < len(group); j++ {
 				person1 := group[i]
 				person2 := group[j]
 
-				// Skip if already friends
+				// Пропустить если уже друзья
 				if _, alreadyFriends := person1.Friends[person2]; alreadyFriends {
 					continue
 				}
 
-				// 25% chance to become friends
+				// 25% шанс стать друзьями
 				if utils.GlobalRandom.NextFloat() < 0.25 {
-					// Make bidirectional friendship
-					person1.Friends[person2] = 0.0 // Start with 0 relationship strength
+					// Создать двустороннюю дружбу
+					person1.Friends[person2] = 0.0 // Начать с 0 силы отношений
 					person2.Friends[person1] = 0.0
 				}
 			}
@@ -54,9 +54,9 @@ func processFriendships(people []*components.Human) {
 	}
 }
 
-// processMarriages handles marriage formation between compatible people
+// processMarriages обрабатывает формирование браков между совместимыми людьми
 func processMarriages(people []*components.Human) {
-	// Group single people by their current building
+	// Группировать одиноких людей по их текущему зданию
 	buildingGroups := make(map[*components.Building][]*components.Human)
 
 	for _, person := range people {
@@ -66,21 +66,21 @@ func processMarriages(people []*components.Human) {
 		buildingGroups[person.CurrentBuilding] = append(buildingGroups[person.CurrentBuilding], person)
 	}
 
-	// Process potential marriages within each building
+	// Обработать потенциальные браки в каждом здании
 	for _, group := range buildingGroups {
 		if len(group) < 2 {
-			continue // Need at least 2 people to form marriages
+			continue // Нужно как минимум 2 человека для формирования браков
 		}
 
-		// Check all pairs of people in the building
+		// Проверить все пары людей в здании
 		for i := 0; i < len(group); i++ {
 			for j := i + 1; j < len(group); j++ {
 				person1 := group[i]
 				person2 := group[j]
 
-				// Check compatibility
+				// Проверить совместимость
 				if person1.IsCompatibleWith(person2) {
-					// Small chance to get married (5% per hour when compatible)
+					// Небольшой шанс пожениться (5% в час при совместимости)
 					if utils.GlobalRandom.NextFloat() < 0.05 {
 						person1.MarryWith(person2)
 					}
@@ -90,7 +90,7 @@ func processMarriages(people []*components.Human) {
 	}
 }
 
-// processBirths handles pregnancy progression and births
+// processBirths обрабатывает прогресс беременности и роды
 func processBirths(people []*components.Human, globalTargets []*components.GlobalTarget) []*components.Human {
 	var newChildren []*components.Human
 
@@ -98,10 +98,10 @@ func processBirths(people []*components.Human, globalTargets []*components.Globa
 		if person.Gender == components.Female && person.IsPregnant {
 			newChild := person.ProcessPregnancy(people, globalTargets)
 			if newChild != nil {
-				// Child was born!
+				// Ребенок родился!
 				newChildren = append(newChildren, newChild)
 
-				// Add child to the city
+				// Добавить ребенка в город
 				person.HomeLocation.Humans[newChild] = true
 			}
 		}
@@ -110,11 +110,11 @@ func processBirths(people []*components.Human, globalTargets []*components.Globa
 	return newChildren
 }
 
-// logToCSV writes the current state of all people to a CSV file
+// logToCSV записывает текущее состояние всех людей в CSV файл
 func logToCSV(people []*components.Human, hour uint64) error {
 	filename := "log.csv"
 	
-	// Check if file exists to determine if we need to write headers
+	// Проверить, существует ли файл, чтобы определить, нужно ли писать заголовки
 	fileExists := false
 	if _, err := os.Stat(filename); err == nil {
 		fileExists = true
@@ -129,7 +129,7 @@ func logToCSV(people []*components.Human, hour uint64) error {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 	
-	// Write header if this is the first time
+	// Записать заголовок если это первый раз
 	if !fileExists {
 		header := []string{"hour", "agent_id", "age", "gender", "alive", "money", "location", "building_type", "job_status", "marital_status"}
 		if err := writer.Write(header); err != nil {
@@ -137,7 +137,7 @@ func logToCSV(people []*components.Human, hour uint64) error {
 		}
 	}
 	
-	// Write data for each person
+	// Записать данные для каждого человека
 	for _, person := range people {
 		location := "unknown"
 		buildingType := "unknown"
@@ -174,49 +174,49 @@ func logToCSV(people []*components.Human, hour uint64) error {
 }
 
 func main() {
-	// Load actions
+	// Загрузить действия
 	actions, err := LoadActions("actions.ini")
 	if err != nil {
 		log.Fatalf("Failed to load actions: %v", err)
 	}
 
-	// Load local targets
+	// Загрузить локальные цели
 	localTargets, err := LoadLocalTargets("local.ini", actions)
 	if err != nil {
 		log.Fatalf("Failed to load local targets: %v", err)
 	}
 
-	// Load global targets
+	// Загрузить глобальные цели
 	globalTargets, err := LoadGlobalTargets("global.ini", localTargets)
 	if err != nil {
 		log.Fatalf("Failed to load global targets: %v", err)
 	}
 
-	// Create name maps for lookups
+	// Создать карты имен для поиска
 	actionMap, localMap, globalMap, err := CreateNameMaps(actions, localTargets, globalTargets)
 	if err != nil {
 		log.Fatalf("Failed to create name maps: %v", err)
 	}
 
-	// Create two cities
+	// Создать два города
 	smallCity := components.CreateSmallCity("Greenville")
 	largeCity := components.CreateLargeCity("Metropolis")
 
-	// Print city information
+	// Вывести информацию о городах
 	components.PrintCityInfo(smallCity)
 	components.PrintCityInfo(largeCity)
 
-	// Create people for each city separately to ensure employment rate in each
+	// Создать людей для каждого города отдельно для обеспечения уровня занятости в каждом
 	var people []*components.Human
 
-	// Small city population and employment
+	// Население и занятость малого города
 	smallCityEmployed := int(float64(config.SmallCityPopulation) * config.EmploymentRate)
 	smallCityResidential := components.GetResidentialBuildings(smallCity)
 	for i := 0; i < config.SmallCityPopulation; i++ {
 		human := components.NewHuman(make(map[*components.Human]bool), smallCity, globalTargets)
 		human.Money = config.StartingMoney
 
-		// Assign residential building
+		// Назначить жилое здание
 		assigned := false
 		for _, building := range smallCityResidential {
 			if building.AddResident(human) {
@@ -228,11 +228,11 @@ func main() {
 			fmt.Printf("Warning: Could not assign residential building to small city human %d\n", i+1)
 		}
 
-		// Employment based on config rate
+		// Трудоустройство на основе конфигурационного коэффициента
 		if i < smallCityEmployed {
 			var availableVacancies []*components.Vacancy
 
-			// Look for jobs in workplace buildings
+			// Искать работы в рабочих зданиях
 			for building := range smallCity.Buildings {
 				if building.Type == components.Workplace {
 					for job := range building.Jobs {
@@ -258,7 +258,7 @@ func main() {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
 				human.Job = chosenVacancy
 				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
-				human.WorkBuilding = chosenVacancy.Parent.Building // Set work building
+				human.WorkBuilding = chosenVacancy.Parent.Building // Установить рабочее здание
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
 			}
 		}
@@ -267,14 +267,14 @@ func main() {
 		smallCity.Humans[human] = true
 	}
 
-	// Large city population and employment
+	// Население и занятость большого города
 	largeCityEmployed := int(float64(config.LargeCityPopulation) * config.EmploymentRate)
 	largeCityResidential := components.GetResidentialBuildings(largeCity)
 	for i := 0; i < config.LargeCityPopulation; i++ {
 		human := components.NewHuman(make(map[*components.Human]bool), largeCity, globalTargets)
 		human.Money = config.StartingMoney
 
-		// Assign residential building
+		// Назначить жилое здание
 		assigned := false
 		for _, building := range largeCityResidential {
 			if building.AddResident(human) {
@@ -286,11 +286,11 @@ func main() {
 			fmt.Printf("Warning: Could not assign residential building to large city human %d\n", i+1)
 		}
 
-		// Employment based on config rate
+		// Трудоустройство на основе конфигурационного коэффициента
 		if i < largeCityEmployed {
 			var availableVacancies []*components.Vacancy
 
-			// Look for jobs in workplace buildings
+			// Искать работы в рабочих зданиях
 			for building := range largeCity.Buildings {
 				if building.Type == components.Workplace {
 					for job := range building.Jobs {
@@ -316,7 +316,7 @@ func main() {
 				chosenVacancy := availableVacancies[utils.GlobalRandom.NextInt(len(availableVacancies))]
 				human.Job = chosenVacancy
 				human.JobTime = uint64(utils.GlobalRandom.NextInt(config.MaxInitialWorkExperience))
-				human.WorkBuilding = chosenVacancy.Parent.Building // Set work building
+				human.WorkBuilding = chosenVacancy.Parent.Building // Установить рабочее здание
 				chosenVacancy.Parent.VacantPlaces[chosenVacancy]--
 			}
 		}
@@ -325,7 +325,7 @@ func main() {
 		largeCity.Humans[human] = true
 	}
 
-	// Count actual employment statistics
+	// Подсчитать фактическую статистику занятости
 	actualSmallCityEmployed := 0
 	actualLargeCityEmployed := 0
 	totalEmployed := 0
@@ -351,7 +351,7 @@ func main() {
 	fmt.Printf("Total employment: %d employed, %d unemployed (%.1f%% employment rate)\n",
 		totalEmployed, len(people)-totalEmployed, float64(totalEmployed)/float64(len(people))*100)
 
-	// Print initial state of all humans
+	// Вывести начальное состояние всех людей
 	fmt.Println("========================================")
 	fmt.Println("INITIAL STATE OF ALL HUMANS")
 	fmt.Println("========================================")
@@ -359,16 +359,16 @@ func main() {
 		person.PrintInitialInfo(i + 1)
 	}
 
-	// Simulation parameters from config
+	// Параметры симуляции из конфигурации
 	var iterateTimer time.Duration
 
-	// Main simulation loop
+	// Основной цикл симуляции
 	for hour := uint64(0); hour < config.TotalSimulationHours; hour++ {
 		startTime := time.Now()
 
 		wg := sync.WaitGroup{}
 
-		// Process each person
+		// Обработать каждого человека
 		for _, person := range people {
 			wg.Add(1)
 
@@ -382,20 +382,20 @@ func main() {
 
 		wg.Wait()
 
-		// Process friendships after all humans have acted (single-threaded for safety)
-		// Only during non-sleep hours
+		// Обработать дружбу после того, как все люди действовали (однопоточно для безопасности)
+		// Только в нерабочие часы сна
 		if !utils.IsSleepTime(utils.GlobalTick.Get()) {
 			processFriendships(people)
 			processMarriages(people)
 		}
 
-		// Process births (children born during this hour)
+		// Обработать роды (дети, рожденные в течение этого часа)
 		newChildren := processBirths(people, globalTargets)
 		if len(newChildren) > 0 {
 			people = append(people, newChildren...)
 		}
 
-		// Process potential layoffs after all humans have acted
+		// Обработать потенциальные увольнения после того, как все люди действовали
 		for _, person := range people {
 			if !person.Dead {
 				if canFire, reason := person.CanBeFired(); canFire {
@@ -404,20 +404,20 @@ func main() {
 			}
 		}
 		
-		// Log current state to CSV
+		// Записать текущее состояние в CSV
 		if err := logToCSV(people, hour); err != nil {
 			log.Printf("Warning: Failed to write to log.csv: %v", err)
 		}
 		
 		iterateTimer += time.Since(startTime)
 		
-		// Increment global time
+		// Увеличить глобальное время
 		utils.GlobalTick.Increment()
 	}
 
 	fmt.Printf("Simulation completed. Total iteration time: %v\n", iterateTimer)
 
-	// Print final state of all humans
+	// Вывести финальное состояние всех людей
 	fmt.Println("\n========================================")
 	fmt.Println("FINAL STATE OF ALL HUMANS")
 	fmt.Println("========================================")
@@ -425,7 +425,7 @@ func main() {
 		person.PrintFinalInfo(i + 1)
 	}
 
-	// Print summary statistics
+	// Вывести сводную статистику
 	fmt.Println("========================================")
 	fmt.Println("SIMULATION SUMMARY")
 	fmt.Println("========================================")
@@ -488,7 +488,7 @@ func main() {
 		}
 	}
 
-	// Count apartments for sale in each city
+	// Подсчитать квартиры на продажу в каждом городе
 	for building := range smallCity.Buildings {
 		if building.Type == components.ResidentialHouse {
 			apartmentsForSaleSmallCity += len(building.ApartmentsForSale)
@@ -526,7 +526,7 @@ func main() {
 	fmt.Printf("Average Money per Person: %d rubles\n", totalMoney/int64(len(people)))
 	fmt.Printf("Total Items Acquired: %d\n", totalItems)
 
-	// New functionality statistics
+	// Статистика новой функциональности
 	totalFriends := 0
 	peopleWithFriends := 0
 	peopleAtWork := 0
@@ -539,7 +539,7 @@ func main() {
 				peopleWithFriends++
 			}
 
-			// Count current locations
+			// Подсчитать текущие местоположения
 			if person.CurrentBuilding != nil {
 				if person.CurrentBuilding == person.WorkBuilding {
 					peopleAtWork++
@@ -567,7 +567,7 @@ func main() {
 		aliveCount-peopleAtWork-peopleAtHome,
 		float64(aliveCount-peopleAtWork-peopleAtHome)/float64(aliveCount)*100)
 
-	// Target completion statistics
+	// Статистика выполнения целей
 	fmt.Println("\nTarget Completion Statistics:")
 	targetStats := make(map[string]int)
 	for _, person := range people {
@@ -581,7 +581,7 @@ func main() {
 			targetName, count, float64(count)/float64(len(people))*100)
 	}
 
-	// Suppress unused variable warnings
+	// Подавить предупреждения о неиспользуемых переменных
 	_ = actionMap
 	_ = localMap
 	_ = globalMap

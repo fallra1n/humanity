@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-// Tick represents global time counter
+// Tick представляет глобальный счетчик времени
 type Tick struct {
 	tick uint64
 	mu   sync.RWMutex
@@ -29,7 +29,7 @@ func (t *Tick) Increment() {
 	t.tick++
 }
 
-// IsNatural checks if string represents a natural number
+// IsNatural проверяет, представляет ли строка натуральное число
 func IsNatural(s string) bool {
 	if _, err := strconv.Atoi(s); err != nil {
 		return false
@@ -37,7 +37,7 @@ func IsNatural(s string) bool {
 	return true
 }
 
-// Split splits string by delimiter and trims whitespace
+// Split разделяет строку по разделителю и обрезает пробелы
 func Split(s, delimiter string) []string {
 	if delimiter == "" {
 		return []string{s}
@@ -56,12 +56,12 @@ func Split(s, delimiter string) []string {
 	return result
 }
 
-// Shuffle shuffles a slice of strings
+// Shuffle перемешивает срез строк
 func Shuffle(slice []string) []string {
 	result := make([]string, len(slice))
 	copy(result, slice)
 
-	// Use the existing GlobalRandom instance instead of deprecated rand.Seed
+	// Использовать существующий экземпляр GlobalRandom вместо устаревшего rand.Seed
 	GlobalRandom.mu.Lock()
 	defer GlobalRandom.mu.Unlock()
 	GlobalRandom.rand.Shuffle(len(result), func(i, j int) {
@@ -71,7 +71,7 @@ func Shuffle(slice []string) []string {
 	return result
 }
 
-// Intersect returns intersection of two string sets
+// Intersect возвращает пересечение двух строковых множеств
 func Intersect(a, b map[string]bool) map[string]bool {
 	result := make(map[string]bool)
 	for key := range a {
@@ -82,7 +82,7 @@ func Intersect(a, b map[string]bool) map[string]bool {
 	return result
 }
 
-// IntersectSlices returns intersection of two string slices as a map
+// IntersectSlices возвращает пересечение двух строковых срезов как карту
 func IntersectSlices(a, b []string) map[string]bool {
 	setA := make(map[string]bool)
 	setB := make(map[string]bool)
@@ -97,7 +97,7 @@ func IntersectSlices(a, b []string) map[string]bool {
 	return Intersect(setA, setB)
 }
 
-// Compare performs comparison operations
+// Compare выполняет операции сравнения
 func Compare(a int64, op string, b int64) bool {
 	switch op {
 	case "=":
@@ -117,7 +117,7 @@ func Compare(a int64, op string, b int64) bool {
 	}
 }
 
-// LoadSequencesFromFile loads configuration from file
+// LoadSequencesFromFile загружает конфигурацию из файла
 func LoadSequencesFromFile(filename string) ([][]string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -131,7 +131,7 @@ func LoadSequencesFromFile(filename string) ([][]string, error) {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		// Skip empty lines and comments
+		// Пропустить пустые строки и комментарии
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
@@ -149,29 +149,29 @@ func LoadSequencesFromFile(filename string) ([][]string, error) {
 	return result, nil
 }
 
-// IsSleepTime checks if the current hour is within sleep time (23:00 to 07:00)
+// IsSleepTime проверяет, находится ли текущий час в пределах времени сна (23:00 до 07:00)
 func IsSleepTime(currentHour uint64) bool {
 	hourOfDay := currentHour % 24
-	// Sleep from 23:00 to 07:00
+	// Сон с 23:00 до 07:00
 	return hourOfDay >= 23 || hourOfDay < 7
 }
 
-// GetHourOfDay returns the hour of day (0-23) from global time
+// GetHourOfDay возвращает час дня (0-23) из глобального времени
 func GetHourOfDay(globalHour uint64) uint64 {
 	return globalHour % 24
 }
 
-// IsWorkTime checks if the current hour is within work time (09:00 to 18:00)
+// IsWorkTime проверяет, находится ли текущий час в пределах рабочего времени (09:00 до 18:00)
 func IsWorkTime(currentHour uint64) bool {
 	hourOfDay := currentHour % 24
-	// Work from 09:00 to 18:00
+	// Работа с 09:00 до 18:00
 	return hourOfDay >= 9 && hourOfDay < 18
 }
 
-// IsWorkDay checks if it's a work day (Monday to Friday)
+// IsWorkDay проверяет, является ли это рабочим днем (понедельник-пятница)
 func IsWorkDay(currentHour uint64) bool {
-	// Assuming simulation starts on Monday (day 0)
+	// Предполагая, что симуляция начинается в понедельник (день 0)
 	dayOfWeek := (currentHour / 24) % 7
-	// Monday=0, Tuesday=1, ..., Friday=4, Saturday=5, Sunday=6
+	// Понедельник=0, Вторник=1, ..., Пятница=4, Суббота=5, Воскресенье=6
 	return dayOfWeek < 5
 }

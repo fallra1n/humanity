@@ -9,7 +9,7 @@ import (
 	"github.com/fallra1n/humanity/utils"
 )
 
-// LoadActions loads actions from configuration file
+// LoadActions загружает действия из конфигурационного файла
 func LoadActions(filename string) ([]*components.Action, error) {
 	sequences, err := utils.LoadSequencesFromFile(filename)
 	if err != nil {
@@ -44,9 +44,9 @@ func LoadActions(filename string) ([]*components.Action, error) {
 			word := words[i]
 
 			if strings.HasPrefix(word, "$") {
-				// Rule
+				// Правило
 				if len(word) > 1 && word[1] == '-' {
-					// Removable item
+					// Удаляемый предмет
 					key := word[2:]
 					if count, exists := removableItems[key]; exists {
 						removableItems[key] = count + 1
@@ -54,7 +54,7 @@ func LoadActions(filename string) ([]*components.Action, error) {
 						removableItems[key] = 1
 					}
 				} else {
-					// Regular rule
+					// Обычное правило
 					key := word[1:]
 					if count, exists := rules[key]; exists {
 						rules[key] = count + 1
@@ -63,7 +63,7 @@ func LoadActions(filename string) ([]*components.Action, error) {
 					}
 				}
 			} else if strings.HasPrefix(word, "@") {
-				// Item to add
+				// Предмет для добавления
 				key := word[1:]
 				if count, exists := items[key]; exists {
 					items[key] = count + 1
@@ -71,14 +71,14 @@ func LoadActions(filename string) ([]*components.Action, error) {
 					items[key] = 1
 				}
 			} else if strings.HasPrefix(word, "+") {
-				// Bonus money
+				// Бонусные деньги
 				bonus, err := strconv.ParseInt(word[1:], 10, 64)
 				if err != nil {
 					return nil, fmt.Errorf("invalid bonus for action %s: %v", name, err)
 				}
 				bonusMoney = bonus
 			} else {
-				// Tag
+				// Тег
 				tags = append(tags, word)
 			}
 		}
@@ -90,7 +90,7 @@ func LoadActions(filename string) ([]*components.Action, error) {
 	return actions, nil
 }
 
-// LoadLocalTargets loads local targets from configuration file
+// LoadLocalTargets загружает локальные цели из конфигурационного файла
 func LoadLocalTargets(filename string, allActions []*components.Action) ([]*components.LocalTarget, error) {
 	sequences, err := utils.LoadSequencesFromFile(filename)
 	if err != nil {
@@ -114,7 +114,7 @@ func LoadLocalTargets(filename string, allActions []*components.Action) ([]*comp
 	return targets, nil
 }
 
-// LoadGlobalTargets loads global targets from configuration file
+// LoadGlobalTargets загружает глобальные цели из конфигурационного файла
 func LoadGlobalTargets(filename string, allLocalTargets []*components.LocalTarget) ([]*components.GlobalTarget, error) {
 	sequences, err := utils.LoadSequencesFromFile(filename)
 	if err != nil {
@@ -132,13 +132,13 @@ func LoadGlobalTargets(filename string, allLocalTargets []*components.LocalTarge
 		var power float64 = 1.0
 		var tags []string
 
-		// Try to parse second word as power (float)
+		// Попытаться разобрать второе слово как силу (float)
 		if len(words) > 2 {
 			if parsedPower, err := strconv.ParseFloat(words[1], 64); err == nil {
 				power = parsedPower
 				tags = words[2:]
 			} else {
-				// Second word is not a number, treat as tag
+				// Второе слово не число, рассматривать как тег
 				tags = words[1:]
 			}
 		} else {
@@ -152,7 +152,7 @@ func LoadGlobalTargets(filename string, allLocalTargets []*components.LocalTarge
 	return targets, nil
 }
 
-// CreateNameMaps creates lookup maps for actions, local targets, and global targets
+// CreateNameMaps создает карты поиска для действий, локальных целей и глобальных целей
 func CreateNameMaps(actions []*components.Action, localTargets []*components.LocalTarget, globalTargets []*components.GlobalTarget) (
 	map[string]*components.Action, map[string]*components.LocalTarget, map[string]*components.GlobalTarget, error) {
 
@@ -160,7 +160,7 @@ func CreateNameMaps(actions []*components.Action, localTargets []*components.Loc
 	localMap := make(map[string]*components.LocalTarget)
 	globalMap := make(map[string]*components.GlobalTarget)
 
-	// Check for duplicates and create action map
+	// Проверить дубликаты и создать карту действий
 	for _, action := range actions {
 		if _, exists := actionMap[action.Name]; exists {
 			return nil, nil, nil, fmt.Errorf("action name duplication: %s", action.Name)
@@ -168,7 +168,7 @@ func CreateNameMaps(actions []*components.Action, localTargets []*components.Loc
 		actionMap[action.Name] = action
 	}
 
-	// Check for duplicates and create local target map
+	// Проверить дубликаты и создать карту локальных целей
 	for _, target := range localTargets {
 		if _, exists := localMap[target.Name]; exists {
 			return nil, nil, nil, fmt.Errorf("local target name duplication: %s", target.Name)
@@ -176,7 +176,7 @@ func CreateNameMaps(actions []*components.Action, localTargets []*components.Loc
 		localMap[target.Name] = target
 	}
 
-	// Check for duplicates and create global target map
+	// Проверить дубликаты и создать карту глобальных целей
 	for _, target := range globalTargets {
 		if _, exists := globalMap[target.Name]; exists {
 			return nil, nil, nil, fmt.Errorf("global target name duplication: %s", target.Name)

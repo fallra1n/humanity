@@ -6,8 +6,8 @@ import (
 	"github.com/fallra1n/humanity/utils"
 )
 
-// CreateSmallCity creates a small city with 10 buildings
-// 1 hospital, 1 school, 2 workplaces, 1 entertainment, 1 cafe, 1 shop, 3 residential houses
+// CreateSmallCity создает малый город с 10 зданиями
+// 1 больница, 1 школа, 2 рабочих места, 1 развлечение, 1 кафе, 1 магазин, 3 жилых дома
 func CreateSmallCity(name string) *Location {
 	city := &Location{
 		Name:      name,
@@ -19,28 +19,28 @@ func CreateSmallCity(name string) *Location {
 
 	buildingID := 1
 
-	// 1 Hospital
+	// 1 Больница
 	hospital := NewBuilding(buildingID, Hospital, fmt.Sprintf("%s Hospital", name), config.SmallCityHospitalCapacity, city)
 	city.Buildings[hospital] = true
 	buildingID++
 
-	// 1 School
+	// 1 Школа
 	school := NewBuilding(buildingID, School, fmt.Sprintf("%s School", name), config.SmallCitySchoolCapacity, city)
 	city.Buildings[school] = true
 	buildingID++
 
-	// 2 Workplaces
+	// 2 Рабочих места
 	for i := 1; i <= 2; i++ {
 		workplace := NewBuilding(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), config.SmallCityWorkplaceCapacity, city)
 
-		// Create jobs for this workplace
+		// Создать работы для этого рабочего места
 		job := &Job{
 			VacantPlaces: make(map[*Vacancy]uint64),
 			HomeLocation: city,
 			Building:     workplace,
 		}
 
-		// Create junior and senior positions
+		// Создать младшие и старшие позиции
 		salaryRange := config.SmallCityJuniorSalaryMax - config.SmallCityJuniorSalaryMin
 		juniorVacancy := &Vacancy{
 			Parent:       job,
@@ -55,12 +55,12 @@ func CreateSmallCity(name string) *Location {
 			Payment:      config.SmallCitySeniorSalaryMin + utils.GlobalRandom.NextInt(salaryRange),
 		}
 
-		// Some senior positions require education
+		// Некоторые старшие позиции требуют образования
 		if i == 1 {
 			seniorVacancy.RequiredTags["engineer_diploma"] = true
 		}
 
-		// Each vacancy has positions based on config
+		// Каждая вакансия имеет позиции на основе конфигурации
 		vacancyRange := config.SmallCityVacanciesMax - config.SmallCityVacanciesMin
 		job.VacantPlaces[juniorVacancy] = uint64(config.SmallCityVacanciesMin + utils.GlobalRandom.NextInt(vacancyRange))
 		job.VacantPlaces[seniorVacancy] = uint64(config.SmallCityVacanciesMin + utils.GlobalRandom.NextInt(vacancyRange))
@@ -71,22 +71,22 @@ func CreateSmallCity(name string) *Location {
 		buildingID++
 	}
 
-	// 1 Entertainment center
+	// 1 Развлекательный центр
 	entertainment := NewBuilding(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), config.SmallCityEntertainmentCapacity, city)
 	city.Buildings[entertainment] = true
 	buildingID++
 
-	// 1 Cafe
+	// 1 Кафе
 	cafe := NewBuilding(buildingID, Cafe, fmt.Sprintf("%s Cafe", name), config.SmallCityCafeCapacity, city)
 	city.Buildings[cafe] = true
 	buildingID++
 
-	// 1 Shop
+	// 1 Магазин
 	shop := NewBuilding(buildingID, Shop, fmt.Sprintf("%s Shop", name), config.SmallCityShopCapacity, city)
 	city.Buildings[shop] = true
 	buildingID++
 
-	// 3 Residential houses
+	// 3 Жилых дома
 	for i := 1; i <= 3; i++ {
 		house := NewBuilding(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), config.SmallCityHouseCapacity, city)
 		city.Buildings[house] = true
@@ -96,8 +96,8 @@ func CreateSmallCity(name string) *Location {
 	return city
 }
 
-// CreateLargeCity creates a large city with 15 buildings
-// 2 hospitals, 2 schools, 3 workplaces, 1 entertainment, 2 cafes, 2 shops, 3 residential houses
+// CreateLargeCity создает большой город с 15 зданиями
+// 2 больницы, 2 школы, 3 рабочих места, 1 развлечение, 2 кафе, 2 магазина, 3 жилых дома
 func CreateLargeCity(name string) *Location {
 	city := &Location{
 		Name:      name,
@@ -109,32 +109,32 @@ func CreateLargeCity(name string) *Location {
 
 	buildingID := 1
 
-	// 2 Hospitals
+	// 2 Больницы
 	for i := 1; i <= 2; i++ {
 		hospital := NewBuilding(buildingID, Hospital, fmt.Sprintf("%s Hospital %d", name, i), config.LargeCityHospitalCapacity, city)
 		city.Buildings[hospital] = true
 		buildingID++
 	}
 
-	// 2 Schools
+	// 2 Школы
 	for i := 1; i <= 2; i++ {
 		school := NewBuilding(buildingID, School, fmt.Sprintf("%s School %d", name, i), config.LargeCitySchoolCapacity, city)
 		city.Buildings[school] = true
 		buildingID++
 	}
 
-	// 3 Workplaces
+	// 3 Рабочих места
 	for i := 1; i <= 3; i++ {
 		workplace := NewBuilding(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), config.LargeCityWorkplaceCapacity, city)
 
-		// Create jobs for this workplace
+		// Создать работы для этого рабочего места
 		job := &Job{
 			VacantPlaces: make(map[*Vacancy]uint64),
 			HomeLocation: city,
 			Building:     workplace,
 		}
 
-		// Create junior and senior positions
+		// Создать младшие и старшие позиции
 		salaryRange := config.LargeCityJuniorSalaryMax - config.LargeCityJuniorSalaryMin
 		juniorVacancy := &Vacancy{
 			Parent:       job,
@@ -149,12 +149,12 @@ func CreateLargeCity(name string) *Location {
 			Payment:      config.LargeCitySeniorSalaryMin + utils.GlobalRandom.NextInt(salaryRange),
 		}
 
-		// Some senior positions require education
+		// Некоторые старшие позиции требуют образования
 		if i <= 2 {
 			seniorVacancy.RequiredTags["engineer_diploma"] = true
 		}
 
-		// Each vacancy has positions based on config
+		// Каждая вакансия имеет позиции на основе конфигурации
 		vacancyRange := config.LargeCityVacanciesMax - config.LargeCityVacanciesMin
 		job.VacantPlaces[juniorVacancy] = uint64(config.LargeCityVacanciesMin + utils.GlobalRandom.NextInt(vacancyRange))
 		job.VacantPlaces[seniorVacancy] = uint64(config.LargeCityVacanciesMin + utils.GlobalRandom.NextInt(vacancyRange))
@@ -165,26 +165,26 @@ func CreateLargeCity(name string) *Location {
 		buildingID++
 	}
 
-	// 1 Entertainment center
+	// 1 Развлекательный центр
 	entertainment := NewBuilding(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), config.LargeCityEntertainmentCapacity, city)
 	city.Buildings[entertainment] = true
 	buildingID++
 
-	// 2 Cafes
+	// 2 Кафе
 	for i := 1; i <= 2; i++ {
 		cafe := NewBuilding(buildingID, Cafe, fmt.Sprintf("%s Cafe %d", name, i), config.LargeCityCafeCapacity, city)
 		city.Buildings[cafe] = true
 		buildingID++
 	}
 
-	// 2 Shops
+	// 2 Магазина
 	for i := 1; i <= 2; i++ {
 		shop := NewBuilding(buildingID, Shop, fmt.Sprintf("%s Shop %d", name, i), config.LargeCityShopCapacity, city)
 		city.Buildings[shop] = true
 		buildingID++
 	}
 
-	// 3 Residential houses
+	// 3 Жилых дома
 	for i := 1; i <= 3; i++ {
 		house := NewBuilding(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), config.LargeCityHouseCapacity, city)
 		city.Buildings[house] = true
@@ -194,7 +194,7 @@ func CreateLargeCity(name string) *Location {
 	return city
 }
 
-// GetResidentialBuildings returns all residential buildings in a location
+// GetResidentialBuildings возвращает все жилые здания в локации
 func GetResidentialBuildings(location *Location) []*Building {
 	location.Mu.RLock()
 	defer location.Mu.RUnlock()
@@ -208,7 +208,7 @@ func GetResidentialBuildings(location *Location) []*Building {
 	return residential
 }
 
-// GetWorkplaceBuildings returns all workplace buildings in a location
+// GetWorkplaceBuildings возвращает все рабочие здания в локации
 func GetWorkplaceBuildings(location *Location) []*Building {
 	location.Mu.RLock()
 	defer location.Mu.RUnlock()
@@ -222,7 +222,7 @@ func GetWorkplaceBuildings(location *Location) []*Building {
 	return workplaces
 }
 
-// PrintCityInfo prints detailed information about a city
+// PrintCityInfo выводит подробную информацию о городе
 func PrintCityInfo(city *Location) {
 	city.Mu.RLock()
 	defer city.Mu.RUnlock()
@@ -243,29 +243,29 @@ func PrintCityInfo(city *Location) {
 	fmt.Printf("Total residents: %d\n", len(city.Humans))
 }
 
-// CalculateFamilyFriendlyCoefficient calculates how family-friendly a city is
-// based on its infrastructure (hospitals, schools, etc.)
+// CalculateFamilyFriendlyCoefficient вычисляет насколько город дружелюбен к семьям
+// на основе его инфраструктуры (больницы, школы и т.д.)
 func CalculateFamilyFriendlyCoefficient(city *Location) float64 {
 	city.Mu.RLock()
 	defer city.Mu.RUnlock()
 
-	coefficient := 1.0 // Base coefficient
+	coefficient := 1.0 // Базовый коэффициент
 
 	buildingCounts := make(map[BuildingType]int)
 	for building := range city.Buildings {
 		buildingCounts[building.Type]++
 	}
 
-	// Hospitals increase family coefficient (medical care for children)
+	// Больницы увеличивают семейный коэффициент (медицинская помощь детям)
 	coefficient += float64(buildingCounts[Hospital]) * 0.3
 
-	// Schools increase family coefficient (education for children)
+	// Школы увеличивают семейный коэффициент (образование для детей)
 	coefficient += float64(buildingCounts[School]) * 0.4
 
-	// Entertainment centers increase coefficient (family activities)
+	// Развлекательные центры увеличивают коэффициент (семейные мероприятия)
 	coefficient += float64(buildingCounts[Entertainment]) * 0.2
 
-	// Cafes and shops provide convenience for families
+	// Кафе и магазины обеспечивают удобство для семей
 	coefficient += float64(buildingCounts[Cafe]) * 0.1
 	coefficient += float64(buildingCounts[Shop]) * 0.1
 

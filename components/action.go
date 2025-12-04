@@ -8,7 +8,7 @@ import (
 	"github.com/fallra1n/humanity/utils"
 )
 
-// Action represents a concrete action that can be performed
+// Action представляет конкретное действие, которое может быть выполнено
 type Action struct {
 	Name           string
 	Price          int64
@@ -20,7 +20,7 @@ type Action struct {
 	RemovableItems map[string]int64
 }
 
-// NewAction creates a new Action from configuration data
+// NewAction создает новое действие из конфигурационных данных
 func NewAction(name string, price, timeToExecute int64, tags []string, rules, items, removableItems map[string]int64, bonusMoney int64) *Action {
 	tagSet := make(map[string]bool)
 	for _, tag := range tags {
@@ -39,7 +39,7 @@ func NewAction(name string, price, timeToExecute int64, tags []string, rules, it
 	}
 }
 
-// Executable checks if action can be executed by the human
+// Executable проверяет, может ли действие быть выполнено человеком
 func (a *Action) Executable(person *Human) bool {
 	comparisons1 := []string{">", "<", "="}
 	comparisons2 := []string{"<>", ">=", "<="}
@@ -47,7 +47,7 @@ func (a *Action) Executable(person *Human) bool {
 	for rule, value := range a.Rules {
 		comparison := ""
 
-		// Find comparison operator
+		// Найти оператор сравнения
 		for _, op := range comparisons2 {
 			if strings.Contains(rule, op) {
 				comparison = op
@@ -75,7 +75,7 @@ func (a *Action) Executable(person *Human) bool {
 					val, _ := strconv.ParseInt(part, 10, 64)
 					values[i] = val
 				} else {
-					// Handle metrics
+					// Обработка метрик
 					switch part {
 					case "cash":
 						values[i] = person.Money
@@ -92,14 +92,14 @@ func (a *Action) Executable(person *Human) bool {
 				return false
 			}
 		} else {
-			// Check item availability
+			// Проверка наличия предмета
 			if person.Items[rule] < value {
 				return false
 			}
 		}
 	}
 
-	// Check removable items availability
+	// Проверка наличия удаляемых предметов
 	for item, count := range a.RemovableItems {
 		if person.Items[item] < count {
 			return false
@@ -109,16 +109,16 @@ func (a *Action) Executable(person *Human) bool {
 	return true
 }
 
-// Apply executes the action on the human
+// Apply выполняет действие над человеком
 func (a *Action) Apply(person *Human) {
 	person.Money -= a.Price
 
-	// Add items
+	// Добавить предметы
 	for item, count := range a.Items {
 		person.Items[item] += count
 	}
 
-	// Remove items
+	// Удалить предметы
 	for item, count := range a.RemovableItems {
 		person.Items[item] -= count
 		if person.Items[item] <= 0 {
@@ -128,13 +128,13 @@ func (a *Action) Apply(person *Human) {
 
 	person.Money += a.BonusMoney
 
-	// Special case: job finding
+	// Особый случай: поиск работы
 	if a.Name == "find_job" {
 		person.findJob()
 	}
 }
 
-// String method for Action
+// String метод для Action
 func (a *Action) String() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Action \"%s\":\n", a.Name))

@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// GlobalTarget represents a long-term goal
+// GlobalTarget представляет долгосрочную цель
 type GlobalTarget struct {
 	Name            string
 	Tags            map[string]bool
@@ -15,7 +15,7 @@ type GlobalTarget struct {
 	Mu              sync.RWMutex
 }
 
-// NewGlobalTarget creates a new GlobalTarget
+// NewGlobalTarget создает новую глобальную цель
 func NewGlobalTarget(name string, tags []string, power float64, allTargets []*LocalTarget) *GlobalTarget {
 	tagSet := make(map[string]bool)
 	for _, tag := range tags {
@@ -38,7 +38,7 @@ func NewGlobalTarget(name string, tags []string, power float64, allTargets []*Lo
 	}
 }
 
-// MarkAsExecuted marks a local target as executed
+// MarkAsExecuted отмечает локальную цель как выполненную
 func (gt *GlobalTarget) MarkAsExecuted(target *LocalTarget) {
 	gt.Mu.Lock()
 	defer gt.Mu.Unlock()
@@ -46,7 +46,7 @@ func (gt *GlobalTarget) MarkAsExecuted(target *LocalTarget) {
 	gt.TargetsExecuted[target] = true
 }
 
-// IsExecutedFull checks if all tags are covered
+// IsExecutedFull проверяет, покрыты ли все теги
 func (gt *GlobalTarget) IsExecutedFull() bool {
 	gt.Mu.RLock()
 	defer gt.Mu.RUnlock()
@@ -65,7 +65,7 @@ func (gt *GlobalTarget) IsExecutedFull() bool {
 	return len(remainingTags) == 0
 }
 
-// Executable checks if the global target can be executed
+// Executable проверяет, может ли глобальная цель быть выполнена
 func (gt *GlobalTarget) Executable(person *Human) bool {
 	gt.Mu.RLock()
 	defer gt.Mu.RUnlock()
@@ -75,14 +75,14 @@ func (gt *GlobalTarget) Executable(person *Human) bool {
 		unclosedTags[tag] = true
 	}
 
-	// Remove executed tags
+	// Удалить выполненные теги
 	for target := range gt.TargetsExecuted {
 		for tag := range target.Tags {
 			delete(unclosedTags, tag)
 		}
 	}
 
-	// Check if remaining tags can be closed
+	// Проверить, могут ли оставшиеся теги быть закрыты
 	for target := range gt.TargetsPossible {
 		if target.Executable(person) {
 			for tag := range target.Tags {
@@ -94,7 +94,7 @@ func (gt *GlobalTarget) Executable(person *Human) bool {
 	return len(unclosedTags) == 0
 }
 
-// ChooseTarget selects the best local target for this global target
+// ChooseTarget выбирает лучшую локальную цель для этой глобальной цели
 func (gt *GlobalTarget) ChooseTarget(person *Human) *LocalTarget {
 	gt.Mu.RLock()
 	defer gt.Mu.RUnlock()
@@ -124,7 +124,7 @@ func (gt *GlobalTarget) ChooseTarget(person *Human) *LocalTarget {
 	}
 
 	if len(rating) > 0 {
-		// Get highest rated targets
+		// Получить цели с наивысшим рейтингом
 		var maxRate uint64 = 0
 		for rate := range rating {
 			if rate > maxRate {

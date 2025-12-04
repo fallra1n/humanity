@@ -2,7 +2,7 @@ package components
 
 import "sync"
 
-// HumanStorage manages human ID mapping
+// HumanStorage управляет сопоставлением ID людей
 type HumanStorage struct {
 	links map[interface{}]int
 	count int

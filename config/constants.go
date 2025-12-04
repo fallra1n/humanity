@@ -1,112 +1,112 @@
 package config
 
-// Population and Employment Constants
+// Константы населения и занятости
 const (
-	// Total population in simulation
+	// Общее население в симуляции
 	TotalPopulation = 200
 
-	// Employment rate (90% employed, 10% unemployed - typical for Russia)
+	// Уровень занятости (90% трудоустроены, 10% безработные - типично для России)
 	EmploymentRate = 0.9
 
-	// City population distribution
-	SmallCityPopulation = 0.4 * TotalPopulation // 40% in small city
-	LargeCityPopulation = 0.6 * TotalPopulation // 60% in large city
+	// Распределение населения по городам
+	SmallCityPopulation = 0.4 * TotalPopulation // 40% в малом городе
+	LargeCityPopulation = 0.6 * TotalPopulation // 60% в большом городе
 )
 
-// Economic Constants
+// Экономические константы
 const (
-	// Starting capital for each person
-	StartingMoney = 10000 // rubles
+	// Стартовый капитал для каждого человека
+	StartingMoney = 10000 // рубли
 
-	// Daily living expenses
-	DailyExpenses = 500 // rubles per day
+	// Ежедневные расходы на жизнь
+	DailyExpenses = 500 // рубли в день
 
-	// Salary ranges for small city
-	SmallCityJuniorSalaryMin = 30000 // rubles/month
-	SmallCityJuniorSalaryMax = 45000 // rubles/month
-	SmallCitySeniorSalaryMin = 50000 // rubles/month
-	SmallCitySeniorSalaryMax = 75000 // rubles/month
+	// Диапазоны зарплат для малого города
+	SmallCityJuniorSalaryMin = 30000 // рубли/месяц
+	SmallCityJuniorSalaryMax = 45000 // рубли/месяц
+	SmallCitySeniorSalaryMin = 50000 // рубли/месяц
+	SmallCitySeniorSalaryMax = 75000 // рубли/месяц
 
-	// Salary ranges for large city (higher cost of living)
-	LargeCityJuniorSalaryMin = 35000 // rubles/month
-	LargeCityJuniorSalaryMax = 55000 // rubles/month
-	LargeCitySeniorSalaryMin = 60000 // rubles/month
-	LargeCitySeniorSalaryMax = 90000 // rubles/month
+	// Диапазоны зарплат для большого города (более высокая стоимость жизни)
+	LargeCityJuniorSalaryMin = 35000 // рубли/месяц
+	LargeCityJuniorSalaryMax = 55000 // рубли/месяц
+	LargeCitySeniorSalaryMin = 60000 // рубли/месяц
+	LargeCitySeniorSalaryMax = 90000 // рубли/месяц
 
-	// Job vacancy counts
-	SmallCityVacanciesMin = 3  // minimum positions per vacancy
-	SmallCityVacanciesMax = 8  // maximum positions per vacancy (3 + 5)
-	LargeCityVacanciesMin = 5  // minimum positions per vacancy
-	LargeCityVacanciesMax = 11 // maximum positions per vacancy (5 + 6)
+	// Количество вакансий
+	SmallCityVacanciesMin = 3  // минимум позиций на вакансию
+	SmallCityVacanciesMax = 8  // максимум позиций на вакансию (3 + 5)
+	LargeCityVacanciesMin = 5  // минимум позиций на вакансию
+	LargeCityVacanciesMax = 11 // максимум позиций на вакансию (5 + 6)
 )
 
-// Job Market Constants
+// Константы рынка труда
 const (
-	// Job search frequency for unemployed (every 24 hours)
+	// Частота поиска работы для безработных (каждые 24 часа)
 	UnemployedJobSearchInterval = 24
 
-	// Job market check frequency for employed (every week)
-	EmployedJobSearchInterval = 168 // hours in a week
+	// Частота проверки рынка труда для трудоустроенных (каждую неделю)
+	EmployedJobSearchInterval = 168 // часов в неделе
 
-	// Minimum work experience before job switching
-	MinJobExperienceForSwitch = 168 // hours (1 week)
+	// Минимальный опыт работы перед сменой работы
+	MinJobExperienceForSwitch = 168 // часов (1 неделя)
 
-	// Minimum salary increase to consider job change
-	MinSalaryIncreasePercent = 1.10 // 10% increase
+	// Минимальное увеличение зарплаты для рассмотрения смены работы
+	MinSalaryIncreasePercent = 1.10 // 10% увеличение
 
-	// Skill requirements
-	MinSkillMatchForJob    = 0.8 // 80% of required skills for initial job
-	MinSkillMatchForSwitch = 0.7 // 70% of required skills for job switching
+	// Требования к навыкам
+	MinSkillMatchForJob    = 0.8 // 80% требуемых навыков для первоначальной работы
+	MinSkillMatchForSwitch = 0.7 // 70% требуемых навыков для смены работы
 
-	// Job change probability range
-	MinJobChangeProbability = 0.2 // 20% minimum chance
-	MaxJobChangeProbability = 0.6 // 60% maximum chance
+	// Диапазон вероятности смены работы
+	MinJobChangeProbability = 0.2 // 20% минимальный шанс
+	MaxJobChangeProbability = 0.6 // 60% максимальный шанс
 )
 
-// Age and Life Constants
+// Константы возраста и жизни
 const (
-	// Age generation parameters
+	// Параметры генерации возраста
 	MinAge    = 20.0
 	MaxAge    = 80.0
 	MeanAge   = 25.0
 	AgeStdDev = 10.0
 
-	// Death age threshold
+	// Порог возраста смерти
 	DeathAge = 80.0
 
-	// Work experience range for initial job assignment
-	MaxInitialWorkExperience = 2000 // hours
+	// Диапазон опыта работы для первоначального назначения работы
+	MaxInitialWorkExperience = 2000 // часы
 )
 
-// Firing and Layoff Constants
+// Константы увольнений и сокращений
 const (
-	// Poor performance (new employees)
-	NewEmployeePeriod       = 168  // hours (1 week)
-	PoorPerformanceFireRate = 0.01 // 1% chance per hour
+	// Плохая производительность (новые сотрудники)
+	NewEmployeePeriod       = 168  // часов (1 неделя)
+	PoorPerformanceFireRate = 0.01 // 1% шанс в час
 
-	// Economic downturn
-	EconomicDownturnRate     = 0.0005 // 0.05% chance per hour
-	EconomicDownturnFireRate = 0.03   // 3% additional fire chance
+	// Экономический спад
+	EconomicDownturnRate     = 0.0005 // 0.05% шанс в час
+	EconomicDownturnFireRate = 0.03   // 3% дополнительный шанс увольнения
 
-	// High salary restructuring threshold and rate
-	HighSalaryThreshold   = 60000  // rubles/month
-	RestructuringFireRate = 0.0003 // 0.03% chance per hour
+	// Порог и коэффициент реструктуризации высоких зарплат
+	HighSalaryThreshold   = 60000  // рубли/месяц
+	RestructuringFireRate = 0.0003 // 0.03% шанс в час
 
-	// Behavioral issues fire rate
-	BehavioralIssuesFireRate = 0.005 // 0.5% additional chance
+	// Коэффициент увольнения за поведенческие проблемы
+	BehavioralIssuesFireRate = 0.005 // 0.5% дополнительный шанс
 
-	// Age discrimination
-	AgeDiscriminationThreshold = 55     // years
-	AgeDiscriminationFireRate  = 0.0001 // 0.01% chance per hour
+	// Возрастная дискриминация
+	AgeDiscriminationThreshold = 55     // лет
+	AgeDiscriminationFireRate  = 0.0001 // 0.01% шанс в час
 
-	// Random layoffs
-	RandomLayoffBaseRate = 0.00001 // very small base chance
-	RandomLayoffFireRate = 0.001   // 0.1% chance
+	// Случайные увольнения
+	RandomLayoffBaseRate = 0.00001 // очень маленький базовый шанс
+	RandomLayoffFireRate = 0.001   // 0.1% шанс
 )
 
-// Building Capacity Constants
+// Константы вместимости зданий
 const (
-	// Small city building capacities
+	// Вместимость зданий малого города
 	SmallCityHospitalCapacity      = 50
 	SmallCitySchoolCapacity        = 200
 	SmallCityWorkplaceCapacity     = 100
@@ -115,7 +115,7 @@ const (
 	SmallCityShopCapacity          = 40
 	SmallCityHouseCapacity         = 30
 
-	// Large city building capacities
+	// Вместимость зданий большого города
 	LargeCityHospitalCapacity      = 75
 	LargeCitySchoolCapacity        = 300
 	LargeCityWorkplaceCapacity     = 150
@@ -125,77 +125,77 @@ const (
 	LargeCityHouseCapacity         = 45
 )
 
-// Simulation Time Constants
+// Константы времени симуляции
 const (
-	// Time units
+	// Единицы времени
 	HoursPerDay   = 24
 	HoursPerWeek  = 168
 	HoursPerMonth = 30 * HoursPerDay
 	HoursPerYear  = 365 * HoursPerDay
 
-	// Simulation duration
+	// Продолжительность симуляции
 	SimulationYears      = 3
 	TotalSimulationHours = SimulationYears * HoursPerYear
 )
 
-// Gender Distribution
+// Распределение по полу
 const (
-	// Gender probability (50/50 split)
+	// Вероятность мужского пола (разделение 50/50)
 	MaleGenderProbability = 0.5
 )
 
-// Global Target Assignment
+// Назначение глобальных целей
 const (
-	// Number of global targets per person
+	// Количество глобальных целей на человека
 	MinGlobalTargets = 2
 	MaxGlobalTargets = 4 // 2 + 2
 )
 
-// Splash (temporary needs) Constants
+// Константы всплесков (временных потребностей)
 const (
-	// Splash lifetimes in hours
+	// Время жизни всплесков в часах
 	NeedMoneyLifetime         = 24
 	JobLossLifetime           = 72
 	CareerAdvancementLifetime = 48
 )
 
-// Sleep Schedule Constants
+// Константы расписания сна
 const (
-	// Sleep hours (23:00 to 07:00)
+	// Часы сна (23:00 до 07:00)
 	SleepStartHour = 23 // 23:00
 	SleepEndHour   = 7  // 07:00
-	SleepDuration  = 8  // hours of sleep
+	SleepDuration  = 8  // часов сна
 )
 
-// Work Schedule Constants
+// Константы рабочего расписания
 const (
-	// Work hours (09:00 to 18:00)
+	// Рабочие часы (09:00 до 18:00)
 	WorkStartHour = 9  // 09:00
 	WorkEndHour   = 18 // 18:00
-	WorkDuration  = 9  // hours of work
+	WorkDuration  = 9  // часов работы
 )
 
-// Family and Birth Constants
+// Константы семьи и рождения
 const (
-	// Marriage and family planning
-	MinMarriageDurationForChildren = 8760  // hours (1 year)
-	MinFamilyIncomeForChildren     = 50000 // rubles combined monthly income
-	MaxChildrenPerFamily           = 4     // maximum children per couple
+	// Брак и планирование семьи
+	MinMarriageDurationForChildren = 8760  // часов (1 год)
+	MinFamilyIncomeForChildren     = 50000 // рубли совокупный месячный доход
+	MaxChildrenPerFamily           = 4     // максимум детей на пару
 
-	// Birth probability and timing
-	BaseBirthPlanningProbability = 0.25 // 25% chance per month for eligible couples
-	PregnancyDurationHours       = 6480 // hours (9 months)
-	ChildExpensesPerDay          = 300  // rubles per child per day
+	// Вероятность рождения и время
+	BaseBirthPlanningProbability = 0.25 // 25% шанс в месяц для подходящих пар
+	PregnancyDurationHours       = 6480 // часов (9 месяцев)
+	ChildExpensesPerDay          = 300  // рубли на ребенка в день
 
-	// Age restrictions for having children
+	// Возрастные ограничения для рождения детей
 	MinMotherAge = 18.0
 	MaxMotherAge = 45.0
 	MinFatherAge = 18.0
 	MaxFatherAge = 60.0
 
-	// City family-friendly coefficients
-	BaseFamilyCoefficient = 1.0  // base multiplier
-	HospitalFamilyBonus   = 0.2  // +20% per hospital
-	SchoolFamilyBonus     = 0.15 // +15% per school
-	MaxFamilyCoefficient  = 2.5  // maximum multiplier
+	// Коэффициенты дружелюбности города к семьям
+	BaseFamilyCoefficient = 1.0  // базовый множитель
+	HospitalFamilyBonus   = 0.2  // +20% за больницу
+	SchoolFamilyBonus     = 0.15 // +15% за школу
+	MaxFamilyCoefficient  = 2.5  // максимальный множитель
 )

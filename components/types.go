@@ -5,14 +5,14 @@ import (
 	"sync"
 )
 
-// Vacancy represents a job opening
+// Vacancy представляет вакансию
 type Vacancy struct {
 	Parent       *Job
 	RequiredTags map[string]bool
 	Payment      int
 }
 
-// Job represents a workplace
+// Job представляет рабочее место
 type Job struct {
 	VacantPlaces map[*Vacancy]uint64
 	HomeLocation *Location
@@ -20,7 +20,7 @@ type Job struct {
 	Mu           sync.RWMutex
 }
 
-// Location represents a place where humans live and work
+// Location представляет место, где люди живут и работают
 type Location struct {
 	Name      string
 	Buildings map[*Building]bool
@@ -30,7 +30,7 @@ type Location struct {
 	Mu        sync.RWMutex
 }
 
-// Path represents a connection between locations
+// Path представляет соединение между локациями
 type Path struct {
 	From  *Location
 	To    *Location
@@ -38,7 +38,7 @@ type Path struct {
 	Time  uint64
 }
 
-// Splash represents a temporary thought or need
+// Splash представляет временную мысль или потребность
 type Splash struct {
 	Name       string
 	Tags       map[string]bool
@@ -46,7 +46,7 @@ type Splash struct {
 	LifeLength uint64
 }
 
-// NewSplash creates a new splash
+// NewSplash создает новый всплеск
 func NewSplash(name string, tags []string, lifeLength uint64) *Splash {
 	tagSet := make(map[string]bool)
 	for _, tag := range tags {
@@ -61,7 +61,7 @@ func NewSplash(name string, tags []string, lifeLength uint64) *Splash {
 	}
 }
 
-// IsExpired checks if splash has expired
+// IsExpired проверяет, истек ли всплеск
 func (s *Splash) IsExpired() bool {
 	return utils.GlobalTick.Get()-s.AppearTime > s.LifeLength
 }

@@ -10,22 +10,22 @@ import (
 	"github.com/fallra1n/humanity/utils"
 )
 
-// Human represents a person in the simulation
+// Human представляет человека в симуляции
 type Human struct {
 	Age                    float64
 	Gender                 Gender
 	MaritalStatus          MaritalStatus
-	Spouse                 *Human // Reference to spouse if married
-	IsPregnant             bool   // True if currently pregnant
-	PregnancyTime          uint64 // Hours since pregnancy started
+	Spouse                 *Human // Ссылка на супруга, если женат/замужем
+	IsPregnant             bool   // True если в данный момент беременна
+	PregnancyTime          uint64 // Часы с начала беременности
 	Dead                   bool
 	BusyHours              uint64
 	Money                  int64
 	Job                    *Vacancy
 	JobTime                uint64
 	HomeLocation           *Location
-	CurrentBuilding        *Building // Where the person currently is
-	WorkBuilding           *Building // Where the person works (can be nil if unemployed)
+	CurrentBuilding        *Building // Где человек находится в данный момент
+	WorkBuilding           *Building // Где человек работает (может быть nil если безработный)
 	ResidentialBuilding    *Building
 	Parents                map[*Human]float64
 	Family                 map[*Human]float64
@@ -36,16 +36,16 @@ type Human struct {
 	CompletedGlobalTargets map[*GlobalTarget]bool
 	Items                  map[string]int64
 
-	// Mutex for thread-safe access to relationships
+	// Мьютекс для потокобезопасного доступа к отношениям
 	Mu sync.RWMutex
 }
 
-// NewHuman creates a new human
+// NewHuman создает нового человека
 func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*GlobalTarget) *Human {
-	// Generate age with normal distribution
+	// Генерация возраста с нормальным распределением
 	age := math.Max(config.MinAge, math.Min(config.MaxAge, utils.GlobalRandom.NextNormal(config.MeanAge, config.AgeStdDev)))
 
-	// Randomly assign gender
+	// Случайное назначение пола
 	var gender Gender
 	if utils.GlobalRandom.NextFloat() < config.MaleGenderProbability {
 		gender = Male
@@ -56,18 +56,18 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 	human := &Human{
 		Age:                    age,
 		Gender:                 gender,
-		MaritalStatus:          Single, // Start as single
-		Spouse:                 nil,    // No spouse initially
-		IsPregnant:             false,  // Not pregnant initially
-		PregnancyTime:          0,      // No pregnancy time
+		MaritalStatus:          Single, // Начинаем как одинокий
+		Spouse:                 nil,    // Изначально без супруга
+		IsPregnant:             false,  // Изначально не беременна
+		PregnancyTime:          0,      // Нет времени беременности
 		Dead:                   false,
 		BusyHours:              0,
 		Money:                  7000,
 		Job:                    nil,
 		JobTime:                720,
 		HomeLocation:           homeLocation,
-		CurrentBuilding:        nil, // Will be set when assigned to residential building
-		WorkBuilding:           nil, // Will be set when getting a job
+		CurrentBuilding:        nil, // Будет установлено при назначении в жилое здание
+		WorkBuilding:           nil, // Будет установлено при получении работы
 		Parents:                make(map[*Human]float64),
 		Family:                 make(map[*Human]float64),
 		Children:               make(map[*Human]float64),
@@ -78,13 +78,13 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 		Items:                  make(map[string]int64),
 	}
 
-	// Set parents
+	// Установить родителей
 	for parent := range parents {
 		human.Parents[parent] = 0.0
 	}
 
-	// Assign random global targets
-	numTargets := 2 + utils.GlobalRandom.NextInt(2) // 2-3 targets
+	// Назначить случайные глобальные цели
+	numTargets := 2 + utils.GlobalRandom.NextInt(2) // 2-3 цели
 	if numTargets > len(globalTargets) {
 		numTargets = len(globalTargets)
 	}
@@ -93,7 +93,7 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 	for len(human.GlobalTargets) < numTargets {
 		target := globalTargets[utils.GlobalRandom.NextInt(len(globalTargets))]
 		if !selectedTargets[target.Name] {
-			// Create a copy of the global target for this human
+			// Создать копию глобальной цели для этого человека
 			newTarget := &GlobalTarget{
 				Name:            target.Name,
 				Tags:            make(map[string]bool),
@@ -102,12 +102,12 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 				TargetsExecuted: make(map[*LocalTarget]bool),
 			}
 
-			// Copy tags
+			// Копировать теги
 			for tag := range target.Tags {
 				newTarget.Tags[tag] = true
 			}
 
-			// Copy possible targets
+			// Копировать возможные цели
 			for localTarget := range target.TargetsPossible {
 				newTarget.TargetsPossible[localTarget] = true
 			}
@@ -121,11 +121,11 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 	return human
 }
 
-// findJob attempts to find a new job
+// findJob пытается найти новую работу
 func (h *Human) findJob() {
 	var possibleJobs []*Vacancy
 
-	// Look for jobs in workplace buildings in the same city
+	// Искать работу в рабочих зданиях в том же городе
 	h.HomeLocation.Mu.RLock()
 	for building := range h.HomeLocation.Buildings {
 		if building.Type == Workplace {
@@ -134,7 +134,7 @@ func (h *Human) findJob() {
 				job.Mu.RLock()
 				for vacancy, count := range job.VacantPlaces {
 					if count > 0 {
-						// Balanced job requirements
+						// Сбалансированные требования к работе
 						requiredSkills := 0
 						hasSkills := 0
 
@@ -145,15 +145,15 @@ func (h *Human) findJob() {
 							}
 						}
 
-						// Allow job if:
-						// 1. No requirements at all
-						// 2. Has at least 80% of required skills
-						// 3. Unemployed and very desperate (money < -10000)
+						// Разрешить работу если:
+						// 1. Нет требований вообще
+						// 2. Имеет как минимум 80% требуемых навыков
+						// 3. Безработный и очень отчаянный (деньги < -10000)
 						if requiredSkills == 0 ||
 							float64(hasSkills)/float64(requiredSkills) >= 0.8 ||
 							(h.Job == nil && h.Money < -10000) {
 
-							// If employed, only consider better paying jobs
+							// Если трудоустроен, рассматривать только более высокооплачиваемые работы
 							if h.Job == nil || vacancy.Payment > h.Job.Payment {
 								possibleJobs = append(possibleJobs, vacancy)
 							}
@@ -170,36 +170,36 @@ func (h *Human) findJob() {
 	if len(possibleJobs) > 0 {
 		chosen := possibleJobs[utils.GlobalRandom.NextInt(len(possibleJobs))]
 
-		// Quit old job
+		// Уволиться со старой работы
 		if h.Job != nil {
 			h.Job.Parent.Mu.Lock()
 			h.Job.Parent.VacantPlaces[h.Job]++
 			h.Job.Parent.Mu.Unlock()
 		}
 
-		// Take new job
+		// Взять новую работу
 		chosen.Parent.Mu.Lock()
 		h.Job = chosen
 		chosen.Parent.VacantPlaces[chosen]--
 		h.JobTime = 0
-		// Set work building to the building where the job is
+		// Установить рабочее здание в здание, где находится работа
 		h.WorkBuilding = chosen.Parent.Building
 		chosen.Parent.Mu.Unlock()
 	}
 }
 
-// checkJobMarket periodically checks for better job opportunities
+// checkJobMarket периодически проверяет лучшие возможности трудоустройства
 func (h *Human) checkJobMarket() {
-	// Check job market more frequently and with less experience required
+	// Проверять рынок труда чаще и с меньшими требованиями к опыту
 	if h.Job == nil {
-		// If unemployed, search for job but not every hour - every 24 hours to maintain unemployment rate
+		// Если безработный, искать работу не каждый час - каждые 24 часа для поддержания уровня безработицы
 		if utils.GlobalTick.Get()%24 == 0 {
 			h.findJob()
 		}
 		return
 	}
 
-	// If employed, check for better opportunities every week (168 hours)
+	// Если трудоустроен, проверять лучшие возможности каждую неделю (168 часов)
 	if h.JobTime < 168 || h.JobTime%168 != 0 {
 		return
 	}
@@ -207,7 +207,7 @@ func (h *Human) checkJobMarket() {
 	var betterJobs []*Vacancy
 	currentSalary := h.Job.Payment
 
-	// Look for better jobs in workplace buildings in the same city
+	// Искать лучшие работы в рабочих зданиях в том же городе
 	h.HomeLocation.Mu.RLock()
 	for building := range h.HomeLocation.Buildings {
 		if building.Type == Workplace {
@@ -215,10 +215,10 @@ func (h *Human) checkJobMarket() {
 			for job := range building.Jobs {
 				job.Mu.RLock()
 				for vacancy, count := range job.VacantPlaces {
-					// Look for jobs with moderate pay increase (10% or more)
+					// Искать работы с умеренным повышением зарплаты (10% или больше)
 					minSalaryIncrease := int(float64(currentSalary) * 1.10)
 					if count > 0 && vacancy.Payment >= minSalaryIncrease {
-						// Balanced requirements for job switching
+						// Сбалансированные требования для смены работы
 						requiredSkills := 0
 						hasSkills := 0
 
@@ -229,7 +229,7 @@ func (h *Human) checkJobMarket() {
 							}
 						}
 
-						// Accept job if has at least 70% of required skills or no requirements
+						// Принять работу если имеет как минимум 70% требуемых навыков или нет требований
 						if requiredSkills == 0 || float64(hasSkills)/float64(requiredSkills) >= 0.7 {
 							betterJobs = append(betterJobs, vacancy)
 						}
@@ -242,7 +242,7 @@ func (h *Human) checkJobMarket() {
 	}
 	h.HomeLocation.Mu.RUnlock()
 
-	// Consider job change with moderate probability
+	// Рассмотреть смену работы с умеренной вероятностью
 	if len(betterJobs) > 0 {
 		bestJob := betterJobs[0]
 		for _, job := range betterJobs {
@@ -251,113 +251,113 @@ func (h *Human) checkJobMarket() {
 			}
 		}
 
-		// Moderate probability of job change (20-60% chance)
+		// Умеренная вероятность смены работы (20-60% шанс)
 		salaryIncrease := float64(bestJob.Payment-currentSalary) / float64(currentSalary)
 		changeProb := math.Max(0.2, math.Min(0.6, salaryIncrease)) // 20-60% chance
 
 		if utils.GlobalRandom.NextFloat() < changeProb {
-			// Quit current job
+			// Уволиться с текущей работы
 			h.Job.Parent.Mu.Lock()
 			h.Job.Parent.VacantPlaces[h.Job]++
 			h.Job.Parent.Mu.Unlock()
 
-			// Take new job
+			// Взять новую работу
 			bestJob.Parent.Mu.Lock()
 			h.Job = bestJob
 			bestJob.Parent.VacantPlaces[bestJob]--
-			h.JobTime = 0 // Reset job experience
+			h.JobTime = 0 // Сбросить опыт работы
 			bestJob.Parent.Mu.Unlock()
 
-			// Add a splash about career advancement
+			// Добавить всплеск о карьерном росте
 			splash := NewSplash("career_advancement", []string{"career", "money", "well-being"}, 48)
 			h.Splashes = append(h.Splashes, splash)
 		}
 	}
 }
 
-// FireEmployee fires the human from their current job
+// FireEmployee увольняет человека с текущей работы
 func (h *Human) FireEmployee(reason string) {
 	if h.Job == nil {
 		return
 	}
 
-	// Return the vacant position
+	// Вернуть вакантную позицию
 	h.Job.Parent.Mu.Lock()
 	h.Job.Parent.VacantPlaces[h.Job]++
 	h.Job.Parent.Mu.Unlock()
 
-	// Remove job from human
+	// Удалить работу у человека
 	h.Job = nil
-	h.JobTime = 721 // Set to unemployed state
+	h.JobTime = 721 // Установить в состояние безработного
 
-	// Add splash about job loss
+	// Добавить всплеск о потере работы
 	splash := NewSplash("job_loss", []string{"money", "stress", "career"}, 72)
 	h.Splashes = append(h.Splashes, splash)
 }
 
-// CanBeFired determines if a human can be fired based on various factors
+// CanBeFired определяет, может ли человек быть уволен на основе различных факторов
 func (h *Human) CanBeFired() (bool, string) {
 	if h.Job == nil {
 		return false, ""
 	}
 
-	// Balanced firing probability to maintain natural unemployment
+	// Сбалансированная вероятность увольнения для поддержания естественной безработицы
 	var fireProb float64 = 0.0
 	var reason string
 
-	// 1. Poor performance (new employees with low experience)
-	if h.JobTime < 168 { // Less than 168 hours (1 week) experience
-		fireProb += 0.01 // 1% chance
+	// 1. Плохая производительность (новые сотрудники с малым опытом)
+	if h.JobTime < 168 { // Менее 168 часов (1 неделя) опыта
+		fireProb += 0.01 // 1% шанс
 		reason = "poor_performance"
 	}
 
-	// 2. Economic downturn (moderate chance)
-	if utils.GlobalRandom.NextFloat() < 0.0005 { // 0.05% chance per hour
-		fireProb += 0.03 // 3% additional chance
+	// 2. Экономический спад (умеренный шанс)
+	if utils.GlobalRandom.NextFloat() < 0.0005 { // 0.05% шанс в час
+		fireProb += 0.03 // 3% дополнительный шанс
 		reason = "economic_downturn"
 	}
 
-	// 3. Company restructuring (for high salary employees)
-	if h.Job.Payment > 60000 { // High salary employees
-		fireProb += 0.0003 // 0.03% chance
+	// 3. Реструктуризация компании (для высокооплачиваемых сотрудников)
+	if h.Job.Payment > 60000 { // Высокооплачиваемые сотрудники
+		fireProb += 0.0003 // 0.03% шанс
 		reason = "restructuring"
 	}
 
-	// 4. Behavioral issues (moderate impact)
+	// 4. Поведенческие проблемы (умеренное влияние)
 	negativeSpashes := 0
 	for _, splash := range h.Splashes {
 		if splash.Name == "stress" || splash.Name == "job_loss" {
 			negativeSpashes++
 		}
 	}
-	if negativeSpashes > 1 { // If any negative splashes
-		fireProb += 0.005 // 0.5% additional chance
+	if negativeSpashes > 1 { // Если есть негативные всплески
+		fireProb += 0.005 // 0.5% дополнительный шанс
 		reason = "behavioral_issues"
 	}
 
-	// 5. Age discrimination (small chance for older workers)
-	if h.Age > 55 { // Age threshold
-		fireProb += 0.0001 // 0.01% chance
+	// 5. Возрастная дискриминация (небольшой шанс для пожилых работников)
+	if h.Age > 55 { // Возрастной порог
+		fireProb += 0.0001 // 0.01% шанс
 		reason = "age_discrimination"
 	}
 
-	// 6. Random layoffs to maintain unemployment rate
-	if utils.GlobalRandom.NextFloat() < 0.00001 { // Very small base chance
-		fireProb += 0.001 // 0.1% chance
+	// 6. Случайные увольнения для поддержания уровня безработицы
+	if utils.GlobalRandom.NextFloat() < 0.00001 { // Очень маленький базовый шанс
+		fireProb += 0.001 // 0.1% шанс
 		reason = "random_layoff"
 	}
 
 	return utils.GlobalRandom.NextFloat() < fireProb, reason
 }
 
-// IterateHour processes one hour of the human's life
+// IterateHour обрабатывает один час жизни человека
 func (h *Human) IterateHour() {
 	if h.Money <= 0 {
 		splash := NewSplash("need_money", []string{"money", "well-being", "career"}, 24)
 		h.Splashes = append(h.Splashes, splash)
 	}
 
-	// Age relationships
+	// Старение отношений
 	for parent := range h.Parents {
 		h.Parents[parent] += 1.0 / (24 * 365)
 	}
@@ -371,14 +371,14 @@ func (h *Human) IterateHour() {
 		h.Friends[friend] += 1.0 / (24 * 365)
 	}
 
-	// Job time management
+	// Управление рабочим временем
 	if h.Job == nil {
 		h.JobTime = 721
 	} else {
 		h.JobTime++
 	}
 
-	// Remove expired splashes
+	// Удалить истекшие всплески
 	validSplashes := make([]*Splash, 0)
 	for _, splash := range h.Splashes {
 		if !splash.IsExpired() {
@@ -387,7 +387,7 @@ func (h *Human) IterateHour() {
 	}
 	h.Splashes = validSplashes
 
-	// Handle death
+	// Обработка смерти
 	if h.Age > 80.0 {
 		if !h.Dead {
 			h.redistributeWealth()
@@ -400,51 +400,51 @@ func (h *Human) IterateHour() {
 		return
 	}
 
-	// Age the human
+	// Старение человека
 	h.Age += 1.0 / (24 * 365)
 
-	// Daily expenses
+	// Ежедневные расходы
 	if utils.GlobalTick.Get()%24 == 0 {
 		dailyExpenses := int64(config.DailyExpenses)
 
-		// Additional expenses for children
+		// Дополнительные расходы на детей
 		dailyExpenses += int64(len(h.Children)) * config.ChildExpensesPerDay
 
 		h.Money -= dailyExpenses
 
-		// Monthly salary
+		// Месячная зарплата
 		if h.Job != nil && utils.GlobalTick.Get()%(30*24) == 0 {
 			h.Money += int64(h.Job.Payment)
 		}
 	}
 
-	// Process pregnancy and child planning (only for women)
+	// Обработка беременности и планирования детей (только для женщин)
 	if h.Gender == Female {
-		// Try to plan child every hour
+		// Пытаться планировать ребенка каждый час
 		h.PlanChild()
 
-		// Process ongoing pregnancy
-		// Note: ProcessPregnancy returns a new child if birth occurs
-		// This will be handled in main.go to add the child to the people slice
+		// Обработка текущей беременности
+		// Примечание: ProcessPregnancy возвращает нового ребенка если происходят роды
+		// Это будет обработано в main.go для добавления ребенка в список людей
 	}
 
-	// Redistribute money within family if needed
+	// Перераспределить деньги в семье при необходимости
 	if h.Money < 0 {
 		h.redistributeMoneyInFamily()
 	}
 
-	// Check job market for better opportunities
+	// Проверить рынок труда на лучшие возможности
 	h.checkJobMarket()
 
-	// Handle movement between buildings
+	// Обработка перемещения между зданиями
 	h.handleMovement()
 
-	// Friendship processing moved to main.go for thread safety
+	// Обработка дружбы перенесена в main.go для потокобезопасности
 
-	// Main activity logic - check if it's sleep time
+	// Основная логика активности - проверить, время ли сна
 	if utils.IsSleepTime(utils.GlobalTick.Get()) {
-		// During sleep hours (23:00 to 07:00), humans don't perform actions
-		// They just rest and recover
+		// Во время сна (23:00 до 07:00), люди не выполняют действия
+		// Они просто отдыхают и восстанавливаются
 		return
 	}
 
@@ -455,25 +455,25 @@ func (h *Human) IterateHour() {
 	}
 }
 
-// handleMovement manages movement between buildings based on time of day
+// handleMovement управляет перемещением между зданиями в зависимости от времени суток
 func (h *Human) handleMovement() {
 	currentHour := utils.GetHourOfDay(utils.GlobalTick.Get())
 
-	// Go to work during work hours (9:00-17:59) if employed and it's a work day
+	// Идти на работу в рабочие часы (9:00-17:59) если трудоустроен и это рабочий день
 	if currentHour >= 9 && currentHour < 18 && h.Job != nil && h.WorkBuilding != nil && utils.IsWorkDay(utils.GlobalTick.Get()) {
 		if h.CurrentBuilding != h.WorkBuilding {
 			h.CurrentBuilding = h.WorkBuilding
 		}
 	}
 
-	// Go home after work (18:00+) or during non-work hours
+	// Идти домой после работы (18:00+) или в нерабочие часы
 	if (currentHour >= 18 || currentHour < 9 || !utils.IsWorkDay(utils.GlobalTick.Get())) && h.ResidentialBuilding != nil {
 		if h.CurrentBuilding != h.ResidentialBuilding {
 			h.CurrentBuilding = h.ResidentialBuilding
 		}
 	}
 
-	// Stay home during sleep hours (23:00-07:00)
+	// Оставаться дома во время сна (23:00-07:00)
 	if utils.IsSleepTime(utils.GlobalTick.Get()) && h.ResidentialBuilding != nil {
 		if h.CurrentBuilding != h.ResidentialBuilding {
 			h.CurrentBuilding = h.ResidentialBuilding
@@ -481,17 +481,17 @@ func (h *Human) handleMovement() {
 	}
 }
 
-// MarryWith creates a marriage between two humans
+// MarryWith создает брак между двумя людьми
 func (h *Human) MarryWith(other *Human) {
 	if h.MaritalStatus == Married || other.MaritalStatus == Married {
-		return // One of them is already married
+		return // Один из них уже женат/замужем
 	}
 
 	if h == other {
-		return // Can't marry yourself
+		return // Нельзя жениться на себе
 	}
 
-	// Determine who moves to whom (bride moves to groom)
+	// Определить кто к кому переезжает (невеста переезжает к жениху)
 	var bride, groom *Human
 	if h.Gender == Female {
 		bride = h
@@ -501,13 +501,13 @@ func (h *Human) MarryWith(other *Human) {
 		groom = h
 	}
 
-	// Create bidirectional marriage
+	// Создать двусторонний брак
 	h.MaritalStatus = Married
 	h.Spouse = other
 	other.MaritalStatus = Married
 	other.Spouse = h
 
-	// Add to family relationships if not already there
+	// Добавить к семейным отношениям если еще не там
 	if _, exists := h.Family[other]; !exists {
 		h.Family[other] = 0.0
 	}
@@ -515,40 +515,40 @@ func (h *Human) MarryWith(other *Human) {
 		other.Family[h] = 0.0
 	}
 
-	// Bride moves to groom's residential building (always, even if in same building)
+	// Невеста переезжает в жилое здание жениха (всегда, даже если в том же здании)
 	if bride.ResidentialBuilding != nil && groom.ResidentialBuilding != nil {
 		bride.ResidentialBuilding.MoveToSpouse(bride, groom)
 	}
 }
 
-// Divorce ends the marriage between two humans
+// Divorce завершает брак между двумя людьми
 func (h *Human) Divorce() {
 	if h.MaritalStatus != Married || h.Spouse == nil {
-		return // Not married
+		return // Не женат/замужем
 	}
 
 	spouse := h.Spouse
 
-	// End bidirectional marriage
+	// Завершить двусторонний брак
 	h.MaritalStatus = Single
 	h.Spouse = nil
 	spouse.MaritalStatus = Single
 	spouse.Spouse = nil
 }
 
-// IsCompatibleWith checks if two humans are compatible for marriage
+// IsCompatibleWith проверяет, совместимы ли два человека для брака
 func (h *Human) IsCompatibleWith(other *Human) bool {
-	// Check if both are single
+	// Проверить, что оба одинокие
 	if h.MaritalStatus != Single || other.MaritalStatus != Single {
 		return false
 	}
 
-	// Check if genders are opposite
+	// Проверить, что полы противоположные
 	if h.Gender == other.Gender {
 		return false
 	}
 
-	// Check age difference (max 10 years)
+	// Проверить разность в возрасте (максимум 10 лет)
 	ageDiff := h.Age - other.Age
 	if ageDiff < 0 {
 		ageDiff = -ageDiff
@@ -557,13 +557,13 @@ func (h *Human) IsCompatibleWith(other *Human) bool {
 		return false
 	}
 
-	// Check if they know each other for at least 6 months (0.5 years)
+	// Проверить, что они знают друг друга как минимум 6 месяцев (0.5 года)
 	friendship, exists := h.Friends[other]
 	if !exists || friendship < 0.5 {
 		return false
 	}
 
-	// Check if they have at least 3 common global target types
+	// Проверить, что у них есть как минимум 3 общих типа глобальных целей
 	commonTargets := 0
 	for hTarget := range h.GlobalTargets {
 		for otherTarget := range other.GlobalTargets {
@@ -577,14 +577,14 @@ func (h *Human) IsCompatibleWith(other *Human) bool {
 	return commonTargets >= 3
 }
 
-// CanHaveChildren checks if a person can have children based on age and marital status
+// CanHaveChildren проверяет, может ли человек иметь детей на основе возраста и семейного положения
 func (h *Human) CanHaveChildren() bool {
-	// Must be married
+	// Должен быть женат/замужем
 	if h.MaritalStatus != Married || h.Spouse == nil {
 		return false
 	}
 
-	// Age restrictions based on gender
+	// Возрастные ограничения на основе пола
 	if h.Gender == Female {
 		return h.Age >= config.MinMotherAge && h.Age <= config.MaxMotherAge
 	} else {
@@ -592,7 +592,7 @@ func (h *Human) CanHaveChildren() bool {
 	}
 }
 
-// GetFamilyIncome calculates combined income of married couple
+// GetFamilyIncome вычисляет совокупный доход супружеской пары
 func (h *Human) GetFamilyIncome() int64 {
 	income := int64(0)
 	if h.Job != nil {
@@ -604,31 +604,31 @@ func (h *Human) GetFamilyIncome() int64 {
 	return income
 }
 
-// ShouldPlanChild determines if a couple should plan for a child
+// ShouldPlanChild определяет, должна ли пара планировать ребенка
 func (h *Human) ShouldPlanChild() bool {
-	// Only women can get pregnant
+	// Только женщины могут забеременеть
 	if h.Gender != Female {
 		return false
 	}
 
-	// Already pregnant
+	// Уже беременна
 	if h.IsPregnant {
 		return false
 	}
 
-	// Check basic requirements
+	// Проверить основные требования
 	if !h.CanHaveChildren() {
 		return false
 	}
 
-	// Check if married for required duration
+	// Проверить, женаты ли требуемое время
 	marriageTime, exists := h.Family[h.Spouse]
 	marriageTimeHours := marriageTime * 365 * 24 // Convert years to hours
 	if !exists || marriageTimeHours < float64(config.MinMarriageDurationForChildren) {
 		return false
 	}
 
-	// Check if couple has happy_family goal
+	// Проверить, есть ли у пары цель счастливой семьи
 	hasHappyFamilyGoal := false
 	for target := range h.GlobalTargets {
 		if target.Name == "happy_family" {
@@ -640,12 +640,12 @@ func (h *Human) ShouldPlanChild() bool {
 		return false
 	}
 
-	// Financial stability check
+	// Проверка финансовой стабильности
 	if h.GetFamilyIncome() < int64(config.MinFamilyIncomeForChildren) {
 		return false
 	}
 
-	// Limit number of children
+	// Ограничить количество детей
 	if len(h.Children) >= config.MaxChildrenPerFamily {
 		return false
 	}
@@ -653,13 +653,13 @@ func (h *Human) ShouldPlanChild() bool {
 	return true
 }
 
-// PlanChild starts pregnancy process
+// PlanChild начинает процесс беременности
 func (h *Human) PlanChild() {
 	if h.ShouldPlanChild() {
-		// Calculate city family coefficient
+		// Вычислить семейный коэффициент города
 		cityCoefficient := CalculateFamilyFriendlyCoefficient(h.HomeLocation)
 
-		// Use configurable base probability, modified by city coefficient
+		// Использовать настраиваемую базовую вероятность, модифицированную городским коэффициентом
 		baseProb := config.BaseBirthPlanningProbability / (30 * 24) // Per hour probability
 		adjustedProb := baseProb * cityCoefficient
 
@@ -667,14 +667,14 @@ func (h *Human) PlanChild() {
 			h.IsPregnant = true
 			h.PregnancyTime = 0
 
-			// Add pregnancy splash
+			// Добавить всплеск беременности
 			splash := NewSplash("pregnancy", []string{"family", "health", "responsibility"}, config.PregnancyDurationHours)
 			h.Splashes = append(h.Splashes, splash)
 		}
 	}
 }
 
-// ProcessPregnancy handles pregnancy progression and birth
+// ProcessPregnancy обрабатывает прогресс беременности и роды
 func (h *Human) ProcessPregnancy(people []*Human, globalTargets []*GlobalTarget) *Human {
 	if !h.IsPregnant {
 		return nil
@@ -682,49 +682,49 @@ func (h *Human) ProcessPregnancy(people []*Human, globalTargets []*GlobalTarget)
 
 	h.PregnancyTime++
 
-	// Check if pregnancy duration is complete
+	// Проверить, завершена ли продолжительность беременности
 	if h.PregnancyTime >= config.PregnancyDurationHours {
-		// Give birth!
+		// Родить!
 		return h.GiveBirth(people, globalTargets)
 	}
 
 	return nil
 }
 
-// GiveBirth creates a new child
+// GiveBirth создает нового ребенка
 func (h *Human) GiveBirth(people []*Human, globalTargets []*GlobalTarget) *Human {
-	// Reset pregnancy status
+	// Сбросить статус беременности
 	h.IsPregnant = false
 	h.PregnancyTime = 0
 
-	// Create child with parents
+	// Создать ребенка с родителями
 	parents := make(map[*Human]bool)
 	parents[h] = true
 	parents[h.Spouse] = true
 
 	child := NewHuman(parents, h.HomeLocation, globalTargets)
-	child.Age = 0.0 // Newborn
-	child.Money = 0 // Children don't have money
+	child.Age = 0.0 // Новорожденный
+	child.Money = 0 // Дети не имеют денег
 	child.ResidentialBuilding = h.ResidentialBuilding
 	child.CurrentBuilding = h.ResidentialBuilding
 
-	// Add child to parents' children
+	// Добавить ребенка к детям родителей
 	h.Children[child] = 0.0
 	h.Spouse.Children[child] = 0.0
 
-	// Add parents to child's parents
+	// Добавить родителей к родителям ребенка
 	child.Parents[h] = 0.0
 	child.Parents[h.Spouse] = 0.0
 
-	// Add birth splash to parents
-	birthSplash := NewSplash("child_birth", []string{"family", "happiness", "responsibility"}, 168) // 1 week
+	// Добавить всплеск рождения родителям
+	birthSplash := NewSplash("child_birth", []string{"family", "happiness", "responsibility"}, 168) // 1 неделя
 	h.Splashes = append(h.Splashes, birthSplash)
 	h.Spouse.Splashes = append(h.Spouse.Splashes, birthSplash)
 
 	return child
 }
 
-// redistributeWealth distributes money to family when dying
+// redistributeWealth распределяет деньги семье при смерти
 func (h *Human) redistributeWealth() {
 	if h.Money <= 0 {
 		return
@@ -755,7 +755,7 @@ func (h *Human) redistributeWealth() {
 	}
 }
 
-// redistributeMoneyInFamily tries to get money from family members
+// redistributeMoneyInFamily пытается получить деньги от членов семьи
 func (h *Human) redistributeMoneyInFamily() {
 	for family := range h.Family {
 		if h.Money < 0 && family.Money > 0 {
@@ -782,7 +782,7 @@ func (h *Human) redistributeMoneyInFamily() {
 	}
 }
 
-// performActions handles the main decision-making logic
+// performActions обрабатывает основную логику принятия решений
 func (h *Human) performActions() {
 	if len(h.GlobalTargets) == 0 {
 		return
@@ -791,7 +791,7 @@ func (h *Human) performActions() {
 	rating := make(map[float64][]*GlobalTarget)
 
 	if len(h.Splashes) > 0 {
-		// Rate targets based on splashes
+		// Оценить цели на основе всплесков
 		for target := range h.GlobalTargets {
 			var counter uint64 = 0
 			for _, splash := range h.Splashes {
@@ -803,7 +803,7 @@ func (h *Human) performActions() {
 			rating[rate] = append(rating[rate], target)
 		}
 	} else {
-		// Rate targets based on executability and power
+		// Оценить цели на основе выполнимости и силы
 		for target := range h.GlobalTargets {
 			var executable float64 = 0
 			if target.Executable(h) {
@@ -818,7 +818,7 @@ func (h *Human) performActions() {
 		return
 	}
 
-	// Get highest rated targets
+	// Получить цели с наивысшим рейтингом
 	var maxRate float64 = -1
 	for rate := range rating {
 		if rate > maxRate {
@@ -848,7 +848,7 @@ func (h *Human) performActions() {
 	}
 }
 
-// PrintInitialInfo prints detailed information about human at start
+// PrintInitialInfo выводит подробную информацию о человеке в начале
 func (h *Human) PrintInitialInfo(id int) {
 	fmt.Printf("=== Human #%d Initial State ===\n", id)
 	fmt.Printf("Age: %.1f years\n", h.Age)
@@ -869,7 +869,7 @@ func (h *Human) PrintInitialInfo(id int) {
 	fmt.Println()
 }
 
-// PrintFinalInfo prints detailed information about human at end
+// PrintFinalInfo выводит подробную информацию о человеке в конце
 func (h *Human) PrintFinalInfo(id int) {
 	fmt.Printf("=== Human #%d Final State ===\n", id)
 	fmt.Printf("Status: %s\n", h.getLifeStatus())
@@ -910,7 +910,7 @@ func (h *Human) PrintFinalInfo(id int) {
 	fmt.Println()
 }
 
-// Helper methods for formatting output
+// Вспомогательные методы для форматирования вывода
 func (h *Human) getLifeStatus() string {
 	if h.Dead {
 		return "Dead"
@@ -965,7 +965,7 @@ func (h *Human) getTargetProgress(target *GlobalTarget) float64 {
 	return float64(completedTags) / float64(totalTags) * 100.0
 }
 
-// Helper function to get keys from a map[string]bool
+// Вспомогательная функция для получения ключей из map[string]bool
 func getKeysFromMap(m map[string]bool) []string {
 	keys := make([]string, 0, len(m))
 	for key := range m {
@@ -974,7 +974,7 @@ func getKeysFromMap(m map[string]bool) []string {
 	return keys
 }
 
-// getCurrentLocationString returns a string representation of current location
+// getCurrentLocationString возвращает строковое представление текущего местоположения
 func (h *Human) getCurrentLocationString() string {
 	if h.CurrentBuilding == nil {
 		return "Unknown"

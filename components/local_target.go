@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// LocalTarget represents a short-term goal
+// LocalTarget представляет краткосрочную цель
 type LocalTarget struct {
 	Name            string
 	Tags            map[string]bool
@@ -14,7 +14,7 @@ type LocalTarget struct {
 	Mu              sync.RWMutex
 }
 
-// NewLocalTarget creates a new LocalTarget
+// NewLocalTarget создает новую локальную цель
 func NewLocalTarget(name string, tags []string, allActions []*Action) *LocalTarget {
 	tagSet := make(map[string]bool)
 	for _, tag := range tags {
@@ -36,7 +36,7 @@ func NewLocalTarget(name string, tags []string, allActions []*Action) *LocalTarg
 	}
 }
 
-// MarkAsExecuted marks an action as executed
+// MarkAsExecuted отмечает действие как выполненное
 func (lt *LocalTarget) MarkAsExecuted(action *Action) {
 	lt.Mu.Lock()
 	defer lt.Mu.Unlock()
@@ -44,7 +44,7 @@ func (lt *LocalTarget) MarkAsExecuted(action *Action) {
 	lt.ActionsExecuted[action] = true
 }
 
-// IsExecutedFull checks if all tags are covered by executed actions
+// IsExecutedFull проверяет, покрыты ли все теги выполненными действиями
 func (lt *LocalTarget) IsExecutedFull() bool {
 	lt.Mu.RLock()
 	defer lt.Mu.RUnlock()
@@ -63,7 +63,7 @@ func (lt *LocalTarget) IsExecutedFull() bool {
 	return len(remainingTags) == 0
 }
 
-// Executable checks if the local target can be executed
+// Executable проверяет, может ли локальная цель быть выполнена
 func (lt *LocalTarget) Executable(person *Human) bool {
 	lt.Mu.RLock()
 	defer lt.Mu.RUnlock()
@@ -73,14 +73,14 @@ func (lt *LocalTarget) Executable(person *Human) bool {
 		unclosedTags[tag] = true
 	}
 
-	// Remove executed tags
+	// Удалить выполненные теги
 	for action := range lt.ActionsExecuted {
 		for tag := range action.Tags {
 			delete(unclosedTags, tag)
 		}
 	}
 
-	// Check if remaining tags can be closed
+	// Проверить, могут ли оставшиеся теги быть закрыты
 	for action := range lt.ActionsPossible {
 		if action.Executable(person) {
 			for tag := range action.Tags {
@@ -92,7 +92,7 @@ func (lt *LocalTarget) Executable(person *Human) bool {
 	return len(unclosedTags) == 0
 }
 
-// ChooseAction selects the best action for this target
+// ChooseAction выбирает лучшее действие для этой цели
 func (lt *LocalTarget) ChooseAction(person *Human) *Action {
 	lt.Mu.RLock()
 	defer lt.Mu.RUnlock()
@@ -122,7 +122,7 @@ func (lt *LocalTarget) ChooseAction(person *Human) *Action {
 	}
 
 	if len(rating) > 0 {
-		// Get highest rated actions
+		// Получить действия с наивысшим рейтингом
 		var maxRate uint64 = 0
 		for rate := range rating {
 			if rate > maxRate {

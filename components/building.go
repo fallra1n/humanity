@@ -2,7 +2,7 @@ package components
 
 import "sync"
 
-// BuildingType represents the type of building
+// BuildingType представляет тип здания
 type BuildingType string
 
 const (
@@ -15,32 +15,32 @@ const (
 	ResidentialHouse BuildingType = "residential_house"
 )
 
-// Building represents a structure in a location
+// Building представляет структуру в локации
 type Building struct {
 	ID       int
 	Type     BuildingType
 	Name     string
 	Location *Location
 
-	// For workplaces - contains job vacancies
+	// Для рабочих мест - содержит вакансии
 	Jobs map[*Job]bool
 
-	// For residential - contains residents
+	// Для жилых зданий - содержит жителей
 	Residents map[*Human]bool
 
-	// General capacity and current occupancy
+	// Общая вместимость и текущая заполненность
 	Capacity int
 	Occupied int
 
-	// For residential buildings - apartment sales
-	ApartmentsForSale []*Human // List of apartments available for sale (previous owners)
-	ApartmentPrice    int64    // Price per apartment in rubles
+	// Для жилых зданий - продажа квартир
+	ApartmentsForSale []*Human // Список квартир доступных для продажи (предыдущие владельцы)
+	ApartmentPrice    int64    // Цена за квартиру в рублях
 
-	// Thread safety
+	// Потокобезопасность
 	Mu sync.RWMutex
 }
 
-// NewBuilding creates a new building
+// NewBuilding создает новое здание
 func NewBuilding(id int, buildingType BuildingType, name string, capacity int, location *Location) *Building {
 	building := &Building{
 		ID:        id,
@@ -53,21 +53,21 @@ func NewBuilding(id int, buildingType BuildingType, name string, capacity int, l
 		Occupied:  0,
 	}
 
-	// Initialize apartment sales for residential buildings
+	// Инициализировать продажу квартир для жилых зданий
 	if buildingType == ResidentialHouse {
-		// Different prices for small and large cities
+		// Разные цены для малых и больших городов
 		if location.Name == "Greenville" {
-			building.ApartmentPrice = 2000000 // 2 million rubles for small city
+			building.ApartmentPrice = 2000000 // 2 миллиона рублей для малого города
 		} else {
-			building.ApartmentPrice = 3000000 // 3 million rubles for large city
+			building.ApartmentPrice = 3000000 // 3 миллиона рублей для большого города
 		}
-		building.ApartmentsForSale = make([]*Human, 0) // Initially no apartments for sale
+		building.ApartmentsForSale = make([]*Human, 0) // Изначально нет квартир на продажу
 	}
 
 	return building
 }
 
-// AddJob adds a job to a workplace building
+// AddJob добавляет работу в рабочее здание
 func (b *Building) AddJob(job *Job) bool {
 	if b.Type != Workplace {
 		return false
@@ -81,7 +81,7 @@ func (b *Building) AddJob(job *Job) bool {
 	return true
 }
 
-// AddResident adds a resident to a residential building
+// AddResident добавляет жителя в жилое здание
 func (b *Building) AddResident(human *Human) bool {
 	if b.Type != ResidentialHouse {
 		return false
@@ -97,11 +97,11 @@ func (b *Building) AddResident(human *Human) bool {
 	b.Residents[human] = true
 	b.Occupied++
 	human.ResidentialBuilding = b
-	human.CurrentBuilding = b // Start at home
+	human.CurrentBuilding = b // Начать дома
 	return true
 }
 
-// RemoveResident removes a resident from a residential building
+// RemoveResident удаляет жителя из жилого здания
 func (b *Building) RemoveResident(human *Human) {
 	if b.Type != ResidentialHouse {
 		return
@@ -117,7 +117,7 @@ func (b *Building) RemoveResident(human *Human) {
 	}
 }
 
-// GetAvailableJobs returns all available jobs in this building
+// GetAvailableJobs возвращает все доступные работы в этом здании
 func (b *Building) GetAvailableJobs() []*Vacancy {
 	if b.Type != Workplace {
 		return nil
@@ -140,14 +140,14 @@ func (b *Building) GetAvailableJobs() []*Vacancy {
 	return vacancies
 }
 
-// HasCapacity checks if building has available capacity
+// HasCapacity проверяет, есть ли у здания доступная вместимость
 func (b *Building) HasCapacity() bool {
 	b.Mu.RLock()
 	defer b.Mu.RUnlock()
 	return b.Occupied < b.Capacity
 }
 
-// GetOccupancyRate returns the occupancy rate as a percentage
+// GetOccupancyRate возвращает коэффициент заполненности в процентах
 func (b *Building) GetOccupancyRate() float64 {
 	b.Mu.RLock()
 	defer b.Mu.RUnlock()
@@ -158,7 +158,7 @@ func (b *Building) GetOccupancyRate() float64 {
 	return float64(b.Occupied) / float64(b.Capacity) * 100
 }
 
-// PutApartmentForSale puts an apartment up for sale when a resident moves out
+// PutApartmentForSale выставляет квартиру на продажу когда житель выезжает
 func (b *Building) PutApartmentForSale(previousOwner *Human) {
 	if b.Type != ResidentialHouse {
 		return
@@ -170,7 +170,7 @@ func (b *Building) PutApartmentForSale(previousOwner *Human) {
 	b.ApartmentsForSale = append(b.ApartmentsForSale, previousOwner)
 }
 
-// BuyApartment allows a human to buy an apartment
+// BuyApartment позволяет человеку купить квартиру
 func (b *Building) BuyApartment(human *Human) bool {
 	if b.Type != ResidentialHouse {
 		return false
@@ -183,14 +183,14 @@ func (b *Building) BuyApartment(human *Human) bool {
 		return false
 	}
 
-	// Check if human has enough money
+	// Проверить, есть ли у человека достаточно денег
 	if human.Money < b.ApartmentPrice {
 		return false
 	}
 
-	// Process the purchase
+	// Обработать покупку
 	human.Money -= b.ApartmentPrice
-	// Remove the first apartment from sale list
+	// Удалить первую квартиру из списка продаж
 	b.ApartmentsForSale = b.ApartmentsForSale[1:]
 	b.Residents[human] = true
 	b.Occupied++
@@ -200,7 +200,7 @@ func (b *Building) BuyApartment(human *Human) bool {
 	return true
 }
 
-// MoveToSpouse moves a person to their spouse's residential building
+// MoveToSpouse перемещает человека в жилое здание супруга
 func (b *Building) MoveToSpouse(human *Human, spouse *Human) bool {
 	if b.Type != ResidentialHouse {
 		return false
@@ -211,22 +211,22 @@ func (b *Building) MoveToSpouse(human *Human, spouse *Human) bool {
 		return false
 	}
 
-	// Lock current building first
+	// Заблокировать текущее здание сначала
 	b.Mu.Lock()
 
-	// Remove from current building and put apartment for sale
+	// Удалить из текущего здания и выставить квартиру на продажу
 	if b.Residents[human] {
 		delete(b.Residents, human)
 		b.Occupied--
-		b.ApartmentsForSale = append(b.ApartmentsForSale, human) // Put apartment up for sale directly
+		b.ApartmentsForSale = append(b.ApartmentsForSale, human) // Выставить квартиру на продажу напрямую
 	}
 	b.Mu.Unlock()
 
-	// Lock spouse's building
+	// Заблокировать здание супруга
 	spouseBuilding.Mu.Lock()
 	defer spouseBuilding.Mu.Unlock()
 
-	// Add to spouse's building (no capacity check since it's a move within existing capacity)
+	// Добавить в здание супруга (без проверки вместимости, так как это перемещение в рамках существующей вместимости)
 	spouseBuilding.Residents[human] = true
 	human.ResidentialBuilding = spouseBuilding
 	human.CurrentBuilding = spouseBuilding

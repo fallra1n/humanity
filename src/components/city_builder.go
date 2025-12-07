@@ -2,8 +2,8 @@ package components
 
 import (
 	"fmt"
-	"github.com/fallra1n/humanity/config"
-	"github.com/fallra1n/humanity/utils"
+	"github.com/fallra1n/humanity/src/config"
+	"github.com/fallra1n/humanity/src/utils"
 )
 
 // CreateSmallCity создает малый город с 10 зданиями

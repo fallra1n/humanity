@@ -1,6 +1,6 @@
 package components
 
-import "github.com/fallra1n/humanity/utils"
+import "github.com/fallra1n/humanity/src/utils"
 
 // ProcessMarriages обрабатывает формирование браков между совместимыми людьми
 func ProcessMarriages(people []*Human) {

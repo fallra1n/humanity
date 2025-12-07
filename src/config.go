@@ -1,12 +1,12 @@
-package main
+package src
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/fallra1n/humanity/components"
-	"github.com/fallra1n/humanity/utils"
+	"github.com/fallra1n/humanity/src/components"
+	"github.com/fallra1n/humanity/src/utils"
 )
 
 // LoadActions загружает действия из конфигурационного файла

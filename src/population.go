@@ -1,21 +1,21 @@
-package main
+package src
 
 import (
 	"fmt"
 
-	"github.com/fallra1n/humanity/components"
-	"github.com/fallra1n/humanity/config"
-	"github.com/fallra1n/humanity/utils"
+	"github.com/fallra1n/humanity/src/components"
+	"github.com/fallra1n/humanity/src/config"
+	"github.com/fallra1n/humanity/src/utils"
 )
 
 // PopulationStats содержит статистику созданной популяции
 type PopulationStats struct {
-	TotalPeople               int
-	SmallCityEmployed         int
-	LargeCityEmployed         int
-	TotalEmployed             int
-	SmallCityPopulation       int
-	LargeCityPopulation       int
+	TotalPeople         int
+	SmallCityEmployed   int
+	LargeCityEmployed   int
+	TotalEmployed       int
+	SmallCityPopulation int
+	LargeCityPopulation int
 }
 
 // CreateCityPopulation создает популяцию для одного города
@@ -23,7 +23,7 @@ func CreateCityPopulation(city *components.Location, targetPopulation int, globa
 	var people []*components.Human
 	employedCount := int(float64(targetPopulation) * config.EmploymentRate)
 	residentialBuildings := components.GetResidentialBuildings(city)
-	
+
 	for i := 0; i < targetPopulation; i++ {
 		human := components.NewHuman(make(map[*components.Human]bool), city, globalTargets)
 		human.Money = config.StartingMoney
@@ -136,6 +136,6 @@ func PrintPopulationStats(stats PopulationStats, smallCity, largeCity *component
 		largeCity.Name, stats.LargeCityPopulation, stats.LargeCityEmployed,
 		float64(stats.LargeCityEmployed)/float64(stats.LargeCityPopulation)*100)
 	fmt.Printf("Total employment: %d employed, %d unemployed (%.1f%% employment rate)\n",
-		stats.TotalEmployed, stats.TotalPeople-stats.TotalEmployed, 
+		stats.TotalEmployed, stats.TotalPeople-stats.TotalEmployed,
 		float64(stats.TotalEmployed)/float64(stats.TotalPeople)*100)
 }

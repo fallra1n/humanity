@@ -1,33 +1,32 @@
-package main
+package src
 
 import (
 	"fmt"
 
-	"github.com/fallra1n/humanity/components"
+	"github.com/fallra1n/humanity/src/components"
 )
 
 // SimulationStatistics содержит статистику симуляции
 type SimulationStatistics struct {
-	AliveCount                    int
-	CompletedTargetsCount         int
-	TotalMoney                    int64
-	EmployedCount                 int
-	TotalItems                    int
-	MaleCount                     int
-	FemaleCount                   int
-	MarriedCount                  int
-	ChildrenCount                 int
-	PregnantCount                 int
-	TotalChildren                 int
-	MoveCount                     int
-	ApartmentsForSaleSmallCity    int
-	ApartmentsForSaleLargeCity    int
-	PeopleWithoutHousing          int
-	TotalFriends                  int
-	PeopleWithFriends             int
-	PeopleAtWork                  int
-	PeopleAtHome                  int
-	TargetStats                   map[string]int
+	AliveCount                 int
+	CompletedTargetsCount      int
+	TotalMoney                 int64
+	EmployedCount              int
+	TotalItems                 int
+	MaleCount                  int
+	FemaleCount                int
+	MarriedCount               int
+	ChildrenCount              int
+	PregnantCount              int
+	TotalChildren              int
+	MoveCount                  int
+	ApartmentsForSaleLargeCity int
+	PeopleWithoutHousing       int
+	TotalFriends               int
+	PeopleWithFriends          int
+	PeopleAtWork               int
+	PeopleAtHome               int
+	TargetStats                map[string]int
 }
 
 // CalculateStatistics вычисляет статистику симуляции
@@ -100,7 +99,7 @@ func CalculateStatistics(people []*components.Human, smallCity, largeCity *compo
 			stats.TargetStats[target.Name]++
 		}
 	}
-	
+
 	return stats
 }
 
@@ -126,9 +125,6 @@ func PrintSimulationSummary(people []*components.Human, smallCity, largeCity *co
 	fmt.Printf("Total Children Born: %d children (average %.1f per adult)\n",
 		stats.TotalChildren/2, float64(stats.TotalChildren)/float64(len(people)-stats.ChildrenCount)) // Divide by 2 since both parents count the same child
 	fmt.Printf("Marriage Moves: %d women moved to husband's building\n", stats.MoveCount)
-	fmt.Printf("Apartments for Sale: %d in %s, %d in %s (total: %d)\n",
-		stats.ApartmentsForSaleSmallCity, smallCity.Name, stats.ApartmentsForSaleLargeCity, largeCity.Name,
-		stats.ApartmentsForSaleSmallCity+stats.ApartmentsForSaleLargeCity)
 	fmt.Printf("People without housing: %d/%d (%.1f%%)\n",
 		stats.PeopleWithoutHousing, len(people), float64(stats.PeopleWithoutHousing)/float64(len(people))*100)
 	fmt.Printf("Total Completed Global Targets: %d\n", stats.CompletedTargetsCount)

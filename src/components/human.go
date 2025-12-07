@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/fallra1n/humanity/config"
-	"github.com/fallra1n/humanity/utils"
+	"github.com/fallra1n/humanity/src/config"
+	"github.com/fallra1n/humanity/src/utils"
 )
 
 // Human представляет человека в симуляции

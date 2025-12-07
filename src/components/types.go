@@ -1,7 +1,7 @@
 package components
 
 import (
-	"github.com/fallra1n/humanity/utils"
+	"github.com/fallra1n/humanity/src/utils"
 	"sync"
 )
 

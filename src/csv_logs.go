@@ -1,4 +1,4 @@
-package main
+package src
 
 import (
 	"encoding/csv"
@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/fallra1n/humanity/components"
+	"github.com/fallra1n/humanity/src/components"
 )
 
 // logToCSV записывает текущее состояние всех людей в CSV файл

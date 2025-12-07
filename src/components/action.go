@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fallra1n/humanity/utils"
+	"github.com/fallra1n/humanity/src/utils"
 )
 
 // Action представляет конкретное действие, которое может быть выполнено

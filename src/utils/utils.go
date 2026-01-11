@@ -6,26 +6,20 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 // Tick представляет глобальный счетчик времени
 type Tick struct {
 	tick uint64
-	mu   sync.RWMutex
 }
 
 var GlobalTick = &Tick{tick: 0}
 
 func (t *Tick) Get() uint64 {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
 	return t.tick
 }
 
 func (t *Tick) Increment() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
 	t.tick++
 }
 

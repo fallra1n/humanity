@@ -388,7 +388,7 @@ func (h *Human) IterateHour() {
 	h.Splashes = validSplashes
 
 	// Обработка смерти
-	if h.Age > 80.0 {
+	if h.Age > h.Gender.GetDeathAge() {
 		if !h.Dead {
 			h.redistributeWealth()
 			h.Money = 0

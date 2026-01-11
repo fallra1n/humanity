@@ -3,7 +3,7 @@ package config
 // Константы населения и занятости
 const (
 	// Общее население в симуляции
-	TotalPopulation = 200
+	TotalPopulation = 10
 
 	// Уровень занятости (90% трудоустроены, 10% безработные - типично для России)
 	EmploymentRate = 0.9
@@ -72,7 +72,8 @@ const (
 	AgeStdDev = 10.0
 
 	// Порог возраста смерти
-	DeathAge = 80.0
+	DeathAgeFemale = 78.0
+	DeathAgeMale = 68.0
 
 	// Диапазон опыта работы для первоначального назначения работы
 	MaxInitialWorkExperience = 2000 // часы

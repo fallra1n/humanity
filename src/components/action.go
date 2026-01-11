@@ -130,7 +130,7 @@ func (a *Action) Apply(person *Human) {
 
 	// Особый случай: поиск работы
 	if a.Name == "find_job" {
-		person.findJob()
+		findJob(person)
 	}
 }
 

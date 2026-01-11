@@ -121,70 +121,108 @@ func NewHuman(parents map[*Human]bool, homeLocation *Location, globalTargets []*
 	return human
 }
 
-// findJob пытается найти новую работу
-func (h *Human) findJob() {
-	var possibleJobs []*Vacancy
+// IterateHour обрабатывает один час жизни человека
+func (h *Human) IterateHour() {
+	if h.Money <= 0 {
+		splash := NewSplash("need_money", []string{"money", "well-being", "career"}, 24)
+		h.Splashes = append(h.Splashes, splash)
+	}
 
-	// Искать работу в рабочих зданиях в том же городе
-	h.HomeLocation.Mu.RLock()
-	for building := range h.HomeLocation.Buildings {
-		if building.Type == Workplace {
-			building.Mu.RLock()
-			for job := range building.Jobs {
-				job.Mu.RLock()
-				for vacancy, count := range job.VacantPlaces {
-					if count > 0 {
-						// Сбалансированные требования к работе
-						requiredSkills := 0
-						hasSkills := 0
+	// Старение отношений
+	for parent := range h.Parents {
+		h.Parents[parent] += 1.0 / (24 * 365)
+	}
+	for family := range h.Family {
+		h.Family[family] += 1.0 / (24 * 365)
+	}
+	for child := range h.Children {
+		h.Children[child] += 1.0 / (24 * 365)
+	}
+	for friend := range h.Friends {
+		h.Friends[friend] += 1.0 / (24 * 365)
+	}
 
-						for tag := range vacancy.RequiredTags {
-							requiredSkills++
-							if h.Items[tag] > 0 {
-								hasSkills++
-							}
-						}
+	// Управление рабочим временем
+	if h.Job == nil {
+		h.JobTime = 721
+	} else {
+		h.JobTime++
+	}
 
-						// Разрешить работу если:
-						// 1. Нет требований вообще
-						// 2. Имеет как минимум 80% требуемых навыков
-						// 3. Безработный и очень отчаянный (деньги < -10000)
-						if requiredSkills == 0 ||
-							float64(hasSkills)/float64(requiredSkills) >= 0.8 ||
-							(h.Job == nil && h.Money < -10000) {
-
-							// Если трудоустроен, рассматривать только более высокооплачиваемые работы
-							if h.Job == nil || vacancy.Payment > h.Job.Payment {
-								possibleJobs = append(possibleJobs, vacancy)
-							}
-						}
-					}
-				}
-				job.Mu.RUnlock()
-			}
-			building.Mu.RUnlock()
+	// Удалить истекшие всплески
+	validSplashes := make([]*Splash, 0)
+	for _, splash := range h.Splashes {
+		if !splash.IsExpired() {
+			validSplashes = append(validSplashes, splash)
 		}
 	}
-	h.HomeLocation.Mu.RUnlock()
+	h.Splashes = validSplashes
 
-	if len(possibleJobs) > 0 {
-		chosen := possibleJobs[utils.GlobalRandom.NextInt(len(possibleJobs))]
-
-		// Уволиться со старой работы
-		if h.Job != nil {
-			h.Job.Parent.Mu.Lock()
-			h.Job.Parent.VacantPlaces[h.Job]++
-			h.Job.Parent.Mu.Unlock()
+	// Обработка смерти
+	if h.Age > h.Gender.GetDeathAge() {
+		if !h.Dead {
+			h.redistributeWealth()
+			h.Money = 0
 		}
+		h.Dead = true
+	}
 
-		// Взять новую работу
-		chosen.Parent.Mu.Lock()
-		h.Job = chosen
-		chosen.Parent.VacantPlaces[chosen]--
-		h.JobTime = 0
-		// Установить рабочее здание в здание, где находится работа
-		h.WorkBuilding = chosen.Parent.Building
-		chosen.Parent.Mu.Unlock()
+	if h.Dead {
+		return
+	}
+
+	// Старение человека
+	h.Age += 1.0 / (24 * 365)
+
+	// Ежедневные расходы
+	if utils.GlobalTick.Get()%24 == 0 {
+		dailyExpenses := int64(config.DailyExpenses)
+
+		// Дополнительные расходы на детей
+		dailyExpenses += int64(len(h.Children)) * config.ChildExpensesPerDay
+
+		h.Money -= dailyExpenses
+
+		// Месячная зарплата
+		if h.Job != nil && utils.GlobalTick.Get()%(30*24) == 0 {
+			h.Money += int64(h.Job.Payment)
+		}
+	}
+
+	// Обработка беременности и планирования детей (только для женщин)
+	if h.Gender == Female {
+		// Пытаться планировать ребенка каждый час
+		h.PlanChild()
+
+		// Обработка текущей беременности
+		// Примечание: ProcessPregnancy возвращает нового ребенка если происходят роды
+		// Это будет обработано в main.go для добавления ребенка в список людей
+	}
+
+	// Перераспределить деньги в семье при необходимости
+	if h.Money < 0 {
+		h.redistributeMoneyInFamily()
+	}
+
+	// Проверить рынок труда на лучшие возможности
+	h.checkJobMarket()
+
+	// Обработка перемещения между зданиями
+	h.handleMovement()
+
+	// Обработка дружбы перенесена в main.go для потокобезопасности
+
+	// Основная логика активности - проверить, время ли сна
+	if utils.IsSleepTime(utils.GlobalTick.Get()) {
+		// Во время сна (23:00 до 07:00), люди не выполняют действия
+		// Они просто отдыхают и восстанавливаются
+		return
+	}
+
+	if h.BusyHours > 0 {
+		h.BusyHours--
+	} else {
+		h.performActions()
 	}
 }
 
@@ -194,7 +232,7 @@ func (h *Human) checkJobMarket() {
 	if h.Job == nil {
 		// Если безработный, искать работу не каждый час - каждые 24 часа для поддержания уровня безработицы
 		if utils.GlobalTick.Get()%24 == 0 {
-			h.findJob()
+			findJob(h)
 		}
 		return
 	}
@@ -348,111 +386,6 @@ func (h *Human) CanBeFired() (bool, string) {
 	}
 
 	return utils.GlobalRandom.NextFloat() < fireProb, reason
-}
-
-// IterateHour обрабатывает один час жизни человека
-func (h *Human) IterateHour() {
-	if h.Money <= 0 {
-		splash := NewSplash("need_money", []string{"money", "well-being", "career"}, 24)
-		h.Splashes = append(h.Splashes, splash)
-	}
-
-	// Старение отношений
-	for parent := range h.Parents {
-		h.Parents[parent] += 1.0 / (24 * 365)
-	}
-	for family := range h.Family {
-		h.Family[family] += 1.0 / (24 * 365)
-	}
-	for child := range h.Children {
-		h.Children[child] += 1.0 / (24 * 365)
-	}
-	for friend := range h.Friends {
-		h.Friends[friend] += 1.0 / (24 * 365)
-	}
-
-	// Управление рабочим временем
-	if h.Job == nil {
-		h.JobTime = 721
-	} else {
-		h.JobTime++
-	}
-
-	// Удалить истекшие всплески
-	validSplashes := make([]*Splash, 0)
-	for _, splash := range h.Splashes {
-		if !splash.IsExpired() {
-			validSplashes = append(validSplashes, splash)
-		}
-	}
-	h.Splashes = validSplashes
-
-	// Обработка смерти
-	if h.Age > h.Gender.GetDeathAge() {
-		if !h.Dead {
-			h.redistributeWealth()
-			h.Money = 0
-		}
-		h.Dead = true
-	}
-
-	if h.Dead {
-		return
-	}
-
-	// Старение человека
-	h.Age += 1.0 / (24 * 365)
-
-	// Ежедневные расходы
-	if utils.GlobalTick.Get()%24 == 0 {
-		dailyExpenses := int64(config.DailyExpenses)
-
-		// Дополнительные расходы на детей
-		dailyExpenses += int64(len(h.Children)) * config.ChildExpensesPerDay
-
-		h.Money -= dailyExpenses
-
-		// Месячная зарплата
-		if h.Job != nil && utils.GlobalTick.Get()%(30*24) == 0 {
-			h.Money += int64(h.Job.Payment)
-		}
-	}
-
-	// Обработка беременности и планирования детей (только для женщин)
-	if h.Gender == Female {
-		// Пытаться планировать ребенка каждый час
-		h.PlanChild()
-
-		// Обработка текущей беременности
-		// Примечание: ProcessPregnancy возвращает нового ребенка если происходят роды
-		// Это будет обработано в main.go для добавления ребенка в список людей
-	}
-
-	// Перераспределить деньги в семье при необходимости
-	if h.Money < 0 {
-		h.redistributeMoneyInFamily()
-	}
-
-	// Проверить рынок труда на лучшие возможности
-	h.checkJobMarket()
-
-	// Обработка перемещения между зданиями
-	h.handleMovement()
-
-	// Обработка дружбы перенесена в main.go для потокобезопасности
-
-	// Основная логика активности - проверить, время ли сна
-	if utils.IsSleepTime(utils.GlobalTick.Get()) {
-		// Во время сна (23:00 до 07:00), люди не выполняют действия
-		// Они просто отдыхают и восстанавливаются
-		return
-	}
-
-	if h.BusyHours > 0 {
-		h.BusyHours--
-	} else {
-		h.performActions()
-	}
 }
 
 // handleMovement управляет перемещением между зданиями в зависимости от времени суток

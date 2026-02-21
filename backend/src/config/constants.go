@@ -136,7 +136,7 @@ const (
 
 	// Продолжительность симуляции
 	SimulationYears      = 2
-	TotalSimulationHours = SimulationYears * HoursPerYear
+	TotalSimulationHours = 48
 )
 
 // Распределение по полу

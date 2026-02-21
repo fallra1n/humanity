@@ -1,4 +1,5 @@
 .vscode
-/tmp
-log.csv
-.rooignore
+/backend/tmp
+/backend/log.csv
+/backend/.rooignore
+frontend/.venv

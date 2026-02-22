@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+
 	"github.com/fallra1n/humanity/src/config"
 	"github.com/fallra1n/humanity/src/utils"
 )
@@ -20,18 +21,21 @@ func CreateSmallCity(name string) *Location {
 	buildingID := 1
 
 	// 1 Больница
-	hospital := NewBuilding(buildingID, Hospital, fmt.Sprintf("%s Hospital", name), config.SmallCityHospitalCapacity, city)
+	lat, lon := config.GetCoordinateForBuilding(name, "hospital", 0)
+	hospital := NewBuildingWithCoordinates(buildingID, Hospital, fmt.Sprintf("%s Hospital", name), config.SmallCityHospitalCapacity, city, lat, lon)
 	city.Buildings[hospital] = true
 	buildingID++
 
 	// 1 Школа
-	school := NewBuilding(buildingID, School, fmt.Sprintf("%s School", name), config.SmallCitySchoolCapacity, city)
+	lat, lon = config.GetCoordinateForBuilding(name, "school", 0)
+	school := NewBuildingWithCoordinates(buildingID, School, fmt.Sprintf("%s School", name), config.SmallCitySchoolCapacity, city, lat, lon)
 	city.Buildings[school] = true
 	buildingID++
 
 	// 2 Рабочих места
 	for i := 1; i <= 2; i++ {
-		workplace := NewBuilding(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), config.SmallCityWorkplaceCapacity, city)
+		lat, lon := config.GetCoordinateForBuilding(name, "workplace", i-1)
+		workplace := NewBuildingWithCoordinates(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), config.SmallCityWorkplaceCapacity, city, lat, lon)
 
 		// Создать работы для этого рабочего места
 		job := &Job{
@@ -72,23 +76,27 @@ func CreateSmallCity(name string) *Location {
 	}
 
 	// 1 Развлекательный центр
-	entertainment := NewBuilding(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), config.SmallCityEntertainmentCapacity, city)
+	lat, lon = config.GetCoordinateForBuilding(name, "entertainment", 0)
+	entertainment := NewBuildingWithCoordinates(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), config.SmallCityEntertainmentCapacity, city, lat, lon)
 	city.Buildings[entertainment] = true
 	buildingID++
 
 	// 1 Кафе
-	cafe := NewBuilding(buildingID, Cafe, fmt.Sprintf("%s Cafe", name), config.SmallCityCafeCapacity, city)
+	lat, lon = config.GetCoordinateForBuilding(name, "cafe", 0)
+	cafe := NewBuildingWithCoordinates(buildingID, Cafe, fmt.Sprintf("%s Cafe", name), config.SmallCityCafeCapacity, city, lat, lon)
 	city.Buildings[cafe] = true
 	buildingID++
 
 	// 1 Магазин
-	shop := NewBuilding(buildingID, Shop, fmt.Sprintf("%s Shop", name), config.SmallCityShopCapacity, city)
+	lat, lon = config.GetCoordinateForBuilding(name, "shop", 0)
+	shop := NewBuildingWithCoordinates(buildingID, Shop, fmt.Sprintf("%s Shop", name), config.SmallCityShopCapacity, city, lat, lon)
 	city.Buildings[shop] = true
 	buildingID++
 
 	// 3 Жилых дома
 	for i := 1; i <= 3; i++ {
-		house := NewBuilding(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), config.SmallCityHouseCapacity, city)
+		lat, lon := config.GetCoordinateForBuilding(name, "residential_house", i-1)
+		house := NewBuildingWithCoordinates(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), config.SmallCityHouseCapacity, city, lat, lon)
 		city.Buildings[house] = true
 		buildingID++
 	}
@@ -111,21 +119,24 @@ func CreateLargeCity(name string) *Location {
 
 	// 2 Больницы
 	for i := 1; i <= 2; i++ {
-		hospital := NewBuilding(buildingID, Hospital, fmt.Sprintf("%s Hospital %d", name, i), config.LargeCityHospitalCapacity, city)
+		lat, lon := config.GetCoordinateForBuilding(name, "hospital", i-1)
+		hospital := NewBuildingWithCoordinates(buildingID, Hospital, fmt.Sprintf("%s Hospital %d", name, i), config.LargeCityHospitalCapacity, city, lat, lon)
 		city.Buildings[hospital] = true
 		buildingID++
 	}
 
 	// 2 Школы
 	for i := 1; i <= 2; i++ {
-		school := NewBuilding(buildingID, School, fmt.Sprintf("%s School %d", name, i), config.LargeCitySchoolCapacity, city)
+		lat, lon := config.GetCoordinateForBuilding(name, "school", i-1)
+		school := NewBuildingWithCoordinates(buildingID, School, fmt.Sprintf("%s School %d", name, i), config.LargeCitySchoolCapacity, city, lat, lon)
 		city.Buildings[school] = true
 		buildingID++
 	}
 
 	// 3 Рабочих места
 	for i := 1; i <= 3; i++ {
-		workplace := NewBuilding(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), config.LargeCityWorkplaceCapacity, city)
+		lat, lon := config.GetCoordinateForBuilding(name, "workplace", i-1)
+		workplace := NewBuildingWithCoordinates(buildingID, Workplace, fmt.Sprintf("%s Office %d", name, i), config.LargeCityWorkplaceCapacity, city, lat, lon)
 
 		// Создать работы для этого рабочего места
 		job := &Job{
@@ -166,27 +177,31 @@ func CreateLargeCity(name string) *Location {
 	}
 
 	// 1 Развлекательный центр
-	entertainment := NewBuilding(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), config.LargeCityEntertainmentCapacity, city)
+	lat, lon := config.GetCoordinateForBuilding(name, "entertainment", 0)
+	entertainment := NewBuildingWithCoordinates(buildingID, Entertainment, fmt.Sprintf("%s Entertainment Center", name), config.LargeCityEntertainmentCapacity, city, lat, lon)
 	city.Buildings[entertainment] = true
 	buildingID++
 
 	// 2 Кафе
 	for i := 1; i <= 2; i++ {
-		cafe := NewBuilding(buildingID, Cafe, fmt.Sprintf("%s Cafe %d", name, i), config.LargeCityCafeCapacity, city)
+		lat, lon := config.GetCoordinateForBuilding(name, "cafe", i-1)
+		cafe := NewBuildingWithCoordinates(buildingID, Cafe, fmt.Sprintf("%s Cafe %d", name, i), config.LargeCityCafeCapacity, city, lat, lon)
 		city.Buildings[cafe] = true
 		buildingID++
 	}
 
 	// 2 Магазина
 	for i := 1; i <= 2; i++ {
-		shop := NewBuilding(buildingID, Shop, fmt.Sprintf("%s Shop %d", name, i), config.LargeCityShopCapacity, city)
+		lat, lon := config.GetCoordinateForBuilding(name, "shop", i-1)
+		shop := NewBuildingWithCoordinates(buildingID, Shop, fmt.Sprintf("%s Shop %d", name, i), config.LargeCityShopCapacity, city, lat, lon)
 		city.Buildings[shop] = true
 		buildingID++
 	}
 
 	// 3 Жилых дома
 	for i := 1; i <= 3; i++ {
-		house := NewBuilding(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), config.LargeCityHouseCapacity, city)
+		lat, lon := config.GetCoordinateForBuilding(name, "residential_house", i-1)
+		house := NewBuildingWithCoordinates(buildingID, ResidentialHouse, fmt.Sprintf("%s House %d", name, i), config.LargeCityHouseCapacity, city, lat, lon)
 		city.Buildings[house] = true
 		buildingID++
 	}

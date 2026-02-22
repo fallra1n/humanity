@@ -2,6 +2,7 @@ import sys
 import math
 import random
 import json
+import csv
 from datetime import datetime, timedelta
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, 
                             QSlider, QLabel, QHBoxLayout, QGridLayout,
@@ -300,7 +301,7 @@ class MapWindow(QMainWindow):
             self.memory_label.setText("Память: N/A")
     
     def generate_location_coordinates(self):
-        """Генерирует случайные координаты в пределах Москвы для каждого места"""
+        """Генерирует случайные координаты только для мест без координат из CSV"""
         # Границы Москвы (примерные)
         moscow_bounds = {
             'lat_min': 55.55, 'lat_max': 55.91,
@@ -313,40 +314,52 @@ class MapWindow(QMainWindow):
             for hour, location in agent_data['locations']:
                 unique_locations.add(location)
         
-        # Генерируем координаты для каждого места
+        # Генерируем координаты только для мест, которые не имеют координат из CSV
+        generated_count = 0
         for location in unique_locations:
-            lat = random.uniform(moscow_bounds['lat_min'], moscow_bounds['lat_max'])
-            lon = random.uniform(moscow_bounds['lon_min'], moscow_bounds['lon_max'])
-            self.location_coords[location] = (lat, lon)
+            if location not in self.location_coords:
+                lat = random.uniform(moscow_bounds['lat_min'], moscow_bounds['lat_max'])
+                lon = random.uniform(moscow_bounds['lon_min'], moscow_bounds['lon_max'])
+                self.location_coords[location] = (lat, lon)
+                generated_count += 1
         
-        print(f"Сгенерировано координат для {len(unique_locations)} мест")
+        print(f"Загружено координат из CSV: {len(self.location_coords) - generated_count}")
+        print(f"Сгенерировано случайных координат: {generated_count}")
+        print(f"Всего мест с координатами: {len(self.location_coords)}")
     
     def load_data_from_file(self, filename):
         """Загрузка данных из CSV файла с оптимизацией"""
         self.agents = {}
         try:
             with open(filename, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                header = lines[0].strip().split(',')
+                csv_reader = csv.reader(f)
+                header = next(csv_reader)  # Читаем заголовок
                 
                 print(f"Загрузка данных из {filename}...")
+                print(f"Заголовки CSV: {header}")
                 
                 # Создаем словарь для хранения последнего местоположения каждого агента
                 last_locations = {}
                 
-                for line_num, line in enumerate(lines[1:], 1):
-                    line = line.strip()
-                    if not line:
-                        continue
-                    
-                    parts = line.split(',')
-                    if len(parts) < 8:
+                for line_num, row in enumerate(csv_reader, 1):
+                    if len(row) < 11:  # Проверяем количество колонок
                         continue
                     
                     try:
-                        hour = int(parts[0])
-                        agent_id = int(parts[1])
-                        location = parts[6]
+                        hour = int(row[0])
+                        agent_id = int(row[1])
+                        location = row[6]
+                        geo_coords = row[10]  # Координаты из колонки geo
+                        
+                        # Парсим координаты из строки "lat,lon"
+                        if geo_coords and geo_coords.strip() and geo_coords.strip() != " ":
+                            try:
+                                lat_str, lon_str = geo_coords.split(',')
+                                lat, lon = float(lat_str), float(lon_str)
+                                # Сохраняем координаты для этого места
+                                self.location_coords[location] = (lat, lon)
+                            except (ValueError, IndexError):
+                                pass  # Игнорируем некорректные координаты
                         
                         # Инициализируем агента если его еще нет
                         if agent_id not in self.agents:
@@ -358,7 +371,7 @@ class MapWindow(QMainWindow):
                         
                         # Сохраняем только если местоположение изменилось
                         current_location = location
-                        if (agent_id not in last_locations or 
+                        if (agent_id not in last_locations or
                             last_locations[agent_id] != current_location or
                             hour - self.agents[agent_id]['last_hour'] > 24):
                             
@@ -367,7 +380,7 @@ class MapWindow(QMainWindow):
                             self.agents[agent_id]['last_location'] = location
                             last_locations[agent_id] = current_location
                     
-                    except ValueError:
+                    except (ValueError, IndexError):
                         continue
                     
                     # Прогресс каждые 10000 строк

@@ -51,6 +51,13 @@ func logToCSV(people []*components.Human, hour uint64) error {
 			jobStatus = "employed"
 		}
 
+		// Получаем координаты здания
+		geoCoords := ""
+		if person.CurrentBuilding != nil {
+			lat, lon := person.CurrentBuilding.GetCoordinates()
+			geoCoords = fmt.Sprintf("%.6f,%.6f", lat, lon)
+		}
+
 		row := []string{
 			strconv.FormatUint(hour, 10),
 			strconv.Itoa(components.GlobalHumanStorage.Get(person)),
@@ -62,7 +69,7 @@ func logToCSV(people []*components.Human, hour uint64) error {
 			buildingType,
 			jobStatus,
 			string(person.MaritalStatus),
-			person.CurrentBuilding.X + " " + person.CurrentBuilding.Y,
+			geoCoords,
 		}
 
 		if err := writer.Write(row); err != nil {

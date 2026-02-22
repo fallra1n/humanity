@@ -35,8 +35,8 @@ type Building struct {
 	// Для жилых зданий - цена квартиры (покупка/продажа через администрацию)
 	ApartmentPrice int64 // Цена за квартиру в рублях
 
-	// Координаты
-	X, Y string
+	// Координаты (широта и долгота)
+	Lat, Lon float64
 
 	// Потокобезопасность
 	Mu sync.RWMutex
@@ -65,6 +65,13 @@ func NewBuilding(id int, buildingType BuildingType, name string, capacity int, l
 		}
 	}
 
+	return building
+}
+
+// NewBuildingWithCoordinates создает новое здание с координатами
+func NewBuildingWithCoordinates(id int, buildingType BuildingType, name string, capacity int, location *Location, lat, lon float64) *Building {
+	building := NewBuilding(id, buildingType, name, capacity, location)
+	building.SetCoordinates(lat, lon)
 	return building
 }
 
@@ -149,6 +156,23 @@ func (b *Building) BuyApartmentFromAdmin(buyer *Human) bool {
 	buyer.CurrentBuilding = b
 
 	return true
+}
+
+// SetCoordinates устанавливает координаты здания
+func (b *Building) SetCoordinates(lat, lon float64) {
+	b.Mu.Lock()
+	defer b.Mu.Unlock()
+	
+	b.Lat = lat
+	b.Lon = lon
+}
+
+// GetCoordinates возвращает координаты здания
+func (b *Building) GetCoordinates() (float64, float64) {
+	b.Mu.RLock()
+	defer b.Mu.RUnlock()
+	
+	return b.Lat, b.Lon
 }
 
 // MoveToSpouse перемещает человека в жилое здание супруга
